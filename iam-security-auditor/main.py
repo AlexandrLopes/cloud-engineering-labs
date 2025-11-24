@@ -13,7 +13,7 @@ def audit_iam_users():
     # Create IAM client
     iam = boto3.client('iam')
     
-    print("🛡️  Starting IAM Security Audit...\n")
+    print("  Starting IAM Security Audit...\n")
     print(f"Criteria: Users inactive for more than {INACTIVITY_THRESHOLD_DAYS} days.\n")
     print(f"{'USER':<25} | {'STATUS':<15} | {'LAST LOGIN':<20} | {'DAYS INACTIVE'}")
     print("-" * 80)
