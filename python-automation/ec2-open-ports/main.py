@@ -13,7 +13,7 @@ def audit_security_groups():
     
     try:
         # Get all Security Groups
-        print("🔍 Scanning Security Groups for risky configurations...")
+        print(" Scanning Security Groups for risky configurations...")
         response = ec2.describe_security_groups()
         
         risky_count = 0
@@ -22,15 +22,12 @@ def audit_security_groups():
             sg_name = sg['GroupName']
             sg_id = sg['GroupId']
             
-            # Check inbound rules (Ingress)
-            for rule in sg['IpPermissions']:
-                # Verifica se a regra tem porta definida
+            for rule in sg['IpPermissions']: # Check inbound rules (Ingress)
                 if 'FromPort' in rule:
                     from_port = rule['FromPort']
                     to_port = rule.get('ToPort', from_port)
                     
-                    # Check if connection is open to the world (0.0.0.0/0)
-                    for ip_range in rule['IpRanges']:
+                    for ip_range in rule['IpRanges']: # Check if connection is open to the world (0.0.0.0/0)
                         cidr = ip_range.get('CidrIp')
                         
                         if cidr == '0.0.0.0/0':
