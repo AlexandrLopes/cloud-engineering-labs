@@ -1,39 +1,45 @@
 import datetime
 
-# --- DADOS MOCK (Simulando a resposta da AWS) ---
+# --- MOCK DATA (Simulating AWS API response) ---
 aws_s3_buckets = [
-    {"Name": "financeiro-dados-sens", "Encryption": "AES256", "Public": False},
-    {"Name": "site-estatico-imagens", "Encryption": "None", "Public": True},
-    {"Name": "logs-aplicacao-prod", "Encryption": "AWS-KMS", "Public": False},
-    {"Name": "backup-antigo-dev", "Encryption": "None", "Public": False}
+    {"Name": "financial-sensitive-data", "Encryption": "AES256", "Public": False},
+    {"Name": "static-site-images", "Encryption": "None", "Public": True},
+    {"Name": "app-logs-prod", "Encryption": "AWS-KMS", "Public": False},
+    {"Name": "legacy-backup-dev", "Encryption": "None", "Public": False},
+    # Added a 'broken' bucket (missing encryption key) to test script resilience
+    {"Name": "ghost-bucket-legacy", "Public": True} 
 ]
 
-def auditar_bucket(bucket_dados):
-    encryption_status = bucket_dados['Encryption']
-      
+def audit_bucket(bucket_data):
+    
+    # Using .get() prevents a crash if the 'Encryption' key is missing.
+    # It defaults to 'None' if the key is not found.
+    
+    encryption_status = bucket_data.get('Encryption', 'None')
+    
     if encryption_status == "None":
         return False  
     else:
-        return True  
+        return True   
 
-def gerar_relatorio():
+def generate_report():
     
-    print(f"--- INICIANDO AUDITORIA S3 [{datetime.date.today()}] ---\n")
+    print(f"--- STARTING S3 SECURITY AUDIT [{datetime.date.today()}] ---\n")
     
-    buckets_inseguros = 0
+    vulnerable_buckets_count = 0
     
     for bucket in aws_s3_buckets:
-        nome = bucket['Name']
+        bucket_name = bucket['Name']
         
-        is_secure = auditar_bucket(bucket)
+        is_secure = audit_bucket(bucket)
         
-        if is_secure == True:
-            print(f"[✅ OK] O bucket '{nome}' está encriptado.")
+        if is_secure:
+            print(f"[✅ OK] Bucket '{bucket_name}' is encrypted.")
         else:
-            print(f"[❌ ALERTA] O bucket '{nome}' NÃO TEM ENCRIPTAÇÃO!")
-            buckets_inseguros += 1
+            print(f"[❌ ALERT] Bucket '{bucket_name}' is NOT ENCRYPTED!")
+            vulnerable_buckets_count += 1
             
-    print(f"\n--- RESUMO: {buckets_inseguros} buckets vulneráveis encontrados. ---")
+    print(f"\n--- SUMMARY: {vulnerable_buckets_count} vulnerable buckets found. ---")
 
 if __name__ == "__main__":
-    gerar_relatorio()
+    generate_report()
