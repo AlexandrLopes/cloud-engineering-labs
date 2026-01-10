@@ -22,7 +22,7 @@ def clean_old_files():
         today = datetime.now(timezone.utc)
         deleted_count = 0
 
-        print(f"🔍 Checking for files older than {DAYS_TO_KEEP} days...")
+        print(f" Checking for files older than {DAYS_TO_KEEP} days...")
 
         for obj in response['Contents']:
             file_date = obj['LastModified']
@@ -32,12 +32,12 @@ def clean_old_files():
             age_days = (today - file_date).days
             
             if age_days > DAYS_TO_KEEP:
-                print(f"🗑️ Deleting: {file_name} ({age_days} days old)")
+                print(f" Deleting: {file_name} ({age_days} days old)")
                 # DELETE COMMAND - Uncomment below to actually delete
                 # s3.delete_object(Bucket=BUCKET_NAME, Key=file_name)
                 deleted_count += 1
             else:
-                print(f"✅ Kept: {file_name} ({age_days} days old)")
+                print(f" Kept: {file_name} ({age_days} days old)")
 
         print(f"\nSummary: {deleted_count} files processed for deletion.")
 
