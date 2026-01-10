@@ -12,10 +12,7 @@ aws_s3_buckets = [
 
 def audit_bucket(bucket_data):
     
-    # Using .get() prevents a crash if the 'Encryption' key is missing.
-    # It defaults to 'None' if the key is not found.
-    
-    encryption_status = bucket_data.get('Encryption', 'None')
+    encryption_status = bucket_data.get('Encryption', 'None') #Using .get() prevents a crash if the 'Encryption' key is missing
     
     if encryption_status == "None":
         return False  
