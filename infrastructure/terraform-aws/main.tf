@@ -1,49 +1,79 @@
 # ---------------------------------------------------------
 # AWS Infrastructure Definition
-# Project: Secure Network Foundation
-# Author: Alexandr Lopes
+# Project: Automated Web Server Deployment
+# Author: Alexandre Lopes
 # ---------------------------------------------------------
 
 provider "aws" {
   region = "us-east-1"
 }
 
-# 1. Create a Virtual Private Cloud (The Network)
+# 1. Networking (VPC & Subnet)
 resource "aws_vpc" "main_lab_vpc" {
   cidr_block = "10.0.0.0/16"
-  
   tags = {
-    Name        = "cloud-engineering-lab-vpc"
-    Environment = "Production"
+    Name = "cloud-engineering-lab-vpc"
   }
 }
 
-# 2. Create a Security Group (The Firewall)
-# This is what our Python script audits!
-resource "aws_security_group" "web_server_sg" {
+resource "aws_subnet" "public_subnet" {
+  vpc_id                  = aws_vpc.main_lab_vpc.id
+  cidr_block              = "10.0.1.0/24"
+  map_public_ip_on_launch = true # Makes Shure Pub IP
+  tags = {
+    Name = "public-subnet-1"
+  }
+}
+
+# 2. Security (Firewall)
+resource "aws_security_group" "web_sg" {
   name        = "web-server-sg"
-  description = "Security Group for Web Servers"
+  description = "Allow HTTP and SSH"
   vpc_id      = aws_vpc.main_lab_vpc.id
 
-  # Inbound Rule: Allow HTTP (Safe)
   ingress {
-    description = "Allow HTTP from Internet"
     from_port   = 80
     to_port     = 80
     protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
+    cidr_blocks = ["0.0.0.0/0"] # Open Web to WORLD
   }
 
-  # Inbound Rule: Allow SSH (Restricted - GOOD PRACTICE)
-  ingress {
-    description = "Allow SSH only from Admin IP"
-    from_port   = 22
-    to_port     = 22
-    protocol    = "tcp"
-    cidr_blocks = ["187.15.30.0/32"] # Exemplo de IP fixo, não 0.0.0.0/0
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"] # Allow outbounds to update downloads 
   }
+}
+
+# 3. Compute (The Intelligence)
+# Get the last image of Amazon Linux 2023
+data "aws_ami" "amazon_linux" {
+  most_recent = true
+  owners      = ["amazon"]
+  filter {
+    name   = "name"
+    values = ["al2023-ami-2023.*-x86_64"]
+  }
+}
+
+resource "aws_instance" "web_server" {
+  ami           = data.aws_ami.amazon_linux.id
+  instance_type = "t2.micro" # Free tier elegible
+  subnet_id     = aws_subnet.public_subnet.id
+  vpc_security_group_ids = [aws_security_group.web_sg.id]
+
+  # The Script starts automatically
+  user_data = <<-EOF
+              #!/bin/bash
+              yum update -y
+              yum install -y httpd
+              systemctl start httpd
+              systemctl enable httpd
+              echo "<h1>Deployed via Terraform by Alexandr Lopes</h1>" > /var/www/html/index.html
+              EOF
 
   tags = {
-    Name = "secure-web-sg"
+    Name = "Terraform-Automated-Server"
   }
 }
