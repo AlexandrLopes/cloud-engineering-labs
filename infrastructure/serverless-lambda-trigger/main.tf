@@ -2,7 +2,7 @@ provider "aws" {
   region = "us-east-1"
 }
 
-# terraform will zip the file 
+# terraform will zip automatically
 data "archive_file" "lambda_zip" {
   type        = "zip"
   source_file = "lambda_function.py"
