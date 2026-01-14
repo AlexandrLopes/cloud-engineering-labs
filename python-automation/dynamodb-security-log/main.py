@@ -37,11 +37,11 @@ def create_table_if_not_exists(dynamodb):
 
 def log_alert(table, alert_id, severity, message):
     """
-    Write a security
+    Log security
     """
     timestamp = str(time.time())
     
-    print(f"📝 Logging alert: {alert_id}...")
+    print(f" Logging alert: {alert_id}...")
     
     response = table.put_item(
         Item={
