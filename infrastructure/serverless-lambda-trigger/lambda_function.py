@@ -1,7 +1,7 @@
 import json
 
 def lambda_handler(event, context):
-    print("🤖 Lambda Triggered!")
+    print(" Lambda Triggered!")
     print(f"Received event: {json.dumps(event)}")
     
     return {
