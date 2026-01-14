@@ -33,7 +33,7 @@ Provisioning modern, versioned, and immutable infrastructure.
 Cloud Engineer & Automation and Security Enthusiast.
 * **Certifications:** AWS Certified Cloud Practitioner (CLF-C02)
 * **Focus:** AWS, Python, Terraform, Security (SecOps).
-* **Languages:** English (C2), Portuguese (Native).
+* **Languages:** English (C2), Portuguese (Native), Spanish (intermediate).
 
 ---
 *This repository is maintained via local CI/CD and versioned with Git.*
