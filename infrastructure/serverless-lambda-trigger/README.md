@@ -1,4 +1,4 @@
-# ⚡ Serverless Automation with Terraform & AWS Lambda
+# Serverless Automation with Terraform & AWS Lambda
 
 This project demonstrates a modern **Infrastructure as Code (IaC)** approach to deploy Serverless functions. Instead of manual uploads, Terraform handles the entire lifecycle: zipping the code, creating IAM roles, and deploying to AWS Lambda.
 
