@@ -1,0 +1,28 @@
+name: Terraform Quality Check 
+
+# QUANDO esse robô deve trabalhar?
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+# O QUE ele deve fazer?
+jobs:
+  terraform-check:
+    name: Check Terraform Formatting
+    runs-on: ubuntu-latest  # O GitHub empresta uma máquina Linux pra gente
+
+    steps:
+    # 1. O robô baixa seu código nessa máquina Linux
+    - name: Checkout Code
+      uses: actions/checkout@v3
+
+    # 2. O robô instala o Terraform na máquina dele
+    - name: Setup Terraform
+      uses: hashicorp/setup-terraform@v2
+
+    # 3. O robô verifica se você formatou o código (terraform fmt)
+    - name: Terraform Format Check
+      run: terraform fmt -check -recursive
+      # Se o código estiver feio, esse passo FALHA e o robô avisa.
