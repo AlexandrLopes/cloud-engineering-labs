@@ -38,9 +38,9 @@ def audit_security_groups():
                                 risky_count += 1
 
         if risky_count == 0:
-            print("\n✅ Audit Complete: No risky open ports found.")
+            print("\n Audit Complete: No risky open ports found.")
         else:
-            print(f"\n🚨 Audit Complete: Found {risky_count} security risks.")
+            print(f"\n Audit Complete: Found {risky_count} security risks.")
 
     except Exception as e:
         print(f"Error checking Security Groups: {e}")
