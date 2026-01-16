@@ -34,7 +34,7 @@ def handler(event, context):
             
         except Exception as e:
             print(f" Error writing to DynamoDB: {str(e)}")
-            raise e # Faz a Lambda falhar para o CloudWatch avisar
+            raise e # Force Lambda to fail so CloudWatch notify you
         
     return {
         'statusCode': 200,
