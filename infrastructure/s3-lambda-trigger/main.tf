@@ -66,3 +66,37 @@ resource "aws_iam_role_policy_attachment" "lambda_logs" {
 output "bucket_name" {
   value = aws_s3_bucket.incoming_bucket.id
 }
+
+resource "aws_dynamodb_table" "audit_table" {
+  name         = "S3_File_Audit_Log"
+  billing_mode = "PAY_PER_REQUEST" # Serverless (free to test)
+  hash_key     = "file_name"
+
+  attribute {
+    name = "file_name"
+    type = "S" # String
+  }
+}
+
+resource "aws_iam_policy" "lambda_dynamo_policy" {
+  name        = "lambda_dynamo_write_access"
+  description = "Allows Lambda to write to DynamoDB"
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Action = [
+          "dynamodb:PutItem"
+        ]
+        Effect   = "Allow"
+        Resource = aws_dynamodb_table.audit_table.arn
+      },
+    ]
+  })
+}
+
+resource "aws_iam_role_policy_attachment" "attach_dynamo" {
+  role       = aws_iam_role.iam_for_lambda.name
+  policy_arn = aws_iam_policy.lambda_dynamo_policy.arn
+}
