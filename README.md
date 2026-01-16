@@ -25,7 +25,7 @@ Provisioning modern, versioned, and immutable infrastructure.
 | Project | What it builds? | Technical Highlights |
 | :--- | :--- | :--- |
 | [**AWS Production Environment**](./infrastructure/terraform-aws) | A complete infrastructure stack with **VPC**, **EC2** (bootstrapped with User Data), and **S3**. | `modules`, `variables`, `outputs` |
-| [**Serverless Lambda Trigger**](./infrastructure/serverless-lambda-trigger) | Automated deployment of **Lambda** functions (Python) without managing servers. | `archive_file`, `iam_roles`, `source_hash` |
+| [**Serverless Lambda Trigger**](./infrastructure/s3-lambda-trigger) | Automated deployment of **Lambda** functions (Python) without managing servers. | `archive_file`, `iam_roles`, `source_hash` |
 
 ---
 
