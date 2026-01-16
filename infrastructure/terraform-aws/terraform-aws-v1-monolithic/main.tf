@@ -13,14 +13,14 @@ provider "aws" {
 
 resource "aws_vpc" "main_lab_vpc" {
   cidr_block = "10.0.0.0/16"
-  tags = { Name = "cloud-engineering-lab-vpc" }
+  tags       = { Name = "cloud-engineering-lab-vpc" }
 }
 
 resource "aws_subnet" "public_subnet" {
   vpc_id                  = aws_vpc.main_lab_vpc.id
   cidr_block              = "10.0.1.0/24"
   map_public_ip_on_launch = true
-  tags = { Name = "public-subnet-1" }
+  tags                    = { Name = "public-subnet-1" }
 }
 
 
@@ -88,7 +88,7 @@ resource "random_id" "bucket_suffix" {
 
 resource "aws_s3_bucket" "project_bucket" {
   bucket = "cloud-labs-storage-${random_id.bucket_suffix.hex}"
-  
+
   tags = {
     Name        = "Project Data"
     Environment = "Production"
@@ -107,11 +107,11 @@ resource "aws_s3_bucket_versioning" "versioning_example" {
 # OUTPUTS 
 
 output "server_public_ip" {
-  value = aws_instance.web_server.public_ip
+  value       = aws_instance.web_server.public_ip
   description = "The public IP address of the web server"
 }
 
 output "s3_bucket_name" {
-  value = aws_s3_bucket.project_bucket.id
+  value       = aws_s3_bucket.project_bucket.id
   description = "The unique name of the S3 bucket created"
 }
