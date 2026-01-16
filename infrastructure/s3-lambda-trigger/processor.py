@@ -2,7 +2,7 @@ import json
 import urllib.parse
 
 def handler(event, context):
-    print("⚡ Event received from S3!")
+    print(" Event received from S3!")
     
     for record in event['Records']:
         bucket_name = record['s3']['bucket']['name']
