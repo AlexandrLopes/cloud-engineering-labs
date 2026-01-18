@@ -25,7 +25,7 @@ Provisioning modern, versioned, and immutable infrastructure.
 | Project | What it builds? | Technical Highlights |
 | :--- | :--- | :--- |
 | [**AWS Production Environment**](./infrastructure/terraform-aws) | A complete infrastructure stack with **VPC**, **EC2** (bootstrapped with User Data), and **S3**. | `modules`, `variables`, `outputs` |
-| | [**S3 Event Processor & Audit**](./infrastructure/s3-lambda-trigger) | Event-driven architecture using **Lambda (Python)** to process S3 uploads. Includes **DynamoDB** for metadata persistence and **SecOps Input Validation** to block malicious files. | `boto3`, `dynamodb`, `iam_roles`, `json_parsing` |
+| [**S3 Event Processor & Audit**](./infrastructure/s3-lambda-trigger) | Event-driven architecture using **Lambda (Python)** to process S3 uploads. Includes **DynamoDB** for metadata persistence and **SecOps Input Validation** to block malicious files. | `boto3`, `dynamodb`, `iam_roles`, `json_parsing` |
 
 ---
 
