@@ -6,6 +6,11 @@ resource "random_id" "bucket_suffix" {
   byte_length = 4
 }
 
+variable "alert_email" {
+  description = "Email to recieve alerts"
+  default     = "alexandre.w.d.lopes@gmail.com"
+}
+
 resource "aws_s3_bucket" "incoming_bucket" {
   bucket        = "invoice-processor-${random_id.bucket_suffix.hex}"
   force_destroy = true # Allow destroy the bucket (Lab only)
@@ -24,6 +29,11 @@ resource "aws_lambda_function" "processor_lambda" {
   handler          = "processor.handler"
   runtime          = "python3.9"
   source_code_hash = data.archive_file.lambda_zip.output_base64sha256
+  environment {
+    variables = {
+      SNS_TOPIC_ARN = aws_sns_topic.security_alerts.arn
+    }
+  }
 }
 
 resource "aws_lambda_permission" "allow_s3" {
@@ -87,10 +97,11 @@ resource "aws_iam_policy" "lambda_dynamo_policy" {
     Statement = [
       {
         Action = [
-          "dynamodb:PutItem"
+          "dynamodb:PutItem",
+          "sns:Publish"
         ]
         Effect   = "Allow"
-        Resource = aws_dynamodb_table.audit_table.arn
+        Resource = "*"
       },
     ]
   })
@@ -99,4 +110,15 @@ resource "aws_iam_policy" "lambda_dynamo_policy" {
 resource "aws_iam_role_policy_attachment" "attach_dynamo" {
   role       = aws_iam_role.iam_for_lambda.name
   policy_arn = aws_iam_policy.lambda_dynamo_policy.arn
+}
+
+# SNS TOPIC
+resource "aws_sns_topic" "security_alerts" {
+  name = "s3-security-alerts-topic"
+}
+
+resource "aws_sns_topic_subscription" "email_target" {
+  topic_arn = aws_sns_topic.security_alerts.arn
+  protocol  = "email"
+  endpoint  = var.alert_email
 }
