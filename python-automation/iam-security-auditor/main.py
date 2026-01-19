@@ -1,70 +1,56 @@
 import boto3
-from datetime import datetime, timezone
-import sys
+import datetime
+from botocore.exceptions import ClientError
 
-# --- CONFIGURATION ---
-# Define the threshold for inactivity (industry standard is often 90 days)
-INACTIVITY_THRESHOLD_DAYS = 90
+def get_days_since_creation(create_date):
+    #  timezone UTC 
+    now = datetime.datetime.now(datetime.timezone.utc)
+    diff = now - create_date
+    return diff.days
 
 def audit_iam_users():
-    """
-    Audits AWS IAM users to identify inactive accounts that pose a security risk.
-    """
-    # Create IAM client
     iam = boto3.client('iam')
     
-    print("  Starting IAM Security Audit...\n")
-    print(f"Criteria: Users inactive for more than {INACTIVITY_THRESHOLD_DAYS} days.\n")
-    print(f"{'USER':<25} | {'STATUS':<15} | {'LAST LOGIN':<20} | {'DAYS INACTIVE'}")
-    print("-" * 80)
+    print(f"{'USER':<20} | {'MFA':<10} | {'KEY AGE (Days)':<15} | {'STATUS'}")
+    print("-" * 65)
 
     try:
-        # Get list of all users
-        # Note: For production with >1000 users, you would need to implement pagination.
-        response = iam.list_users()
+        users = iam.list_users()['Users']
         
-        issues_found = 0
-        
-        for user in response['Users']:
+        for user in users:
             username = user['UserName']
             
-            # Check if the user has a password and when it was last used
-            if 'PasswordLastUsed' in user:
-                last_used = user['PasswordLastUsed']
-                
-                # Calculate days since last login
-                now = datetime.now(timezone.utc)
-                days_inactive = (now - last_used).days
-                
-                if days_inactive > INACTIVITY_THRESHOLD_DAYS:
-                    status = "⚠️ WARNING"
-                    issues_found += 1
-                    print(f"{username:<25} | {status:<15} | {last_used.strftime('%Y-%m-%d')}       | {days_inactive} days")
-                else:
-                    status = "✅ ACTIVE"
-                    # Optional: Uncomment to see active users too
-                    # print(f"{username:<25} | {status:<15} | {last_used.strftime('%Y-%m-%d')}       | {days_inactive} days")
+            # 1. Verify MFA
+            mfa_list = iam.list_mfa_devices(UserName=username)['MFADevices']
+            has_mfa = "Enabled" if mfa_list else "DISABLED "
             
-            else:
-                # User exists but never used the password (or only uses Access Keys)
-                # This is also a potential risk if it's an old account
-                creation_date = user['CreateDate']
-                now = datetime.now(timezone.utc)
-                days_since_creation = (now - creation_date).days
+            # 2. Verify Access Keys
+            keys = iam.list_access_keys(UserName=username)['AccessKeyMetadata']
+            
+            if not keys:
+                print(f"{username:<20} | {has_mfa:<10} | {'None':<15} | {'OK'}")
+            
+            for key in keys:
+                key_id = key['AccessKeyId']
+                status = key['Status'] # Active ou Inactive
+                create_date = key['CreateDate']
+                
+                # age of the keys
+                age_days = get_days_since_creation(create_date)
+                
+                # (CIS Benchmark)
+                security_alert = ""
+                if status == "Active" and age_days > 90:
+                    security_alert = "CRITICAL: ROTATE KEY! "
+                elif status == "Active" and age_days > 60:
+                    security_alert = "WARNING: Plan rotation "
+                else:
+                    security_alert = "OK "
 
-                if days_since_creation > INACTIVITY_THRESHOLD_DAYS:
-                    print(f"{username:<25} |  NEVER LOGGED  | N/A                  | {days_since_creation} days (Created)")
-                    issues_found += 1
+                print(f"{username:<20} | {has_mfa:<10} | {str(age_days) + ' days':<15} | {security_alert}")
 
-        print("-" * 80)
-        print(f"\n Audit Complete. Found {issues_found} users requiring attention.")
-        
-        if issues_found > 0:
-            print("Recommendation: Review these accounts and disable/delete if not needed.")
-
-    except Exception as e:
-        print(f"Error connecting to AWS: {e}")
-        print("Tip: Check if your credentials are configured correctly (aws configure).")
+    except ClientError as e:
+        print(f"Erro ao conectar na AWS: {e}")
 
 if __name__ == "__main__":
     audit_iam_users()
