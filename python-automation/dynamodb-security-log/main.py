@@ -32,7 +32,7 @@ def create_table_if_not_exists(dynamodb):
             print(f"  Table {TABLE_NAME} already exists. Skipping creation.")
             return dynamodb.Table(TABLE_NAME)
         else:
-            print(f"❌ Error creating table: {e}")
+            print(f" Error creating table: {e}")
             raise
 
 def log_alert(table, alert_id, severity, message):
@@ -54,9 +54,9 @@ def log_alert(table, alert_id, severity, message):
     )
     
     if response['ResponseMetadata']['HTTPStatusCode'] == 200:
-        print("✅ Alert logged successfully!")
+        print("Alert logged successfully!")
     else:
-        print("❌ Failed to log alert.")
+        print(" Failed to log alert.")
 
 def main():
     # Connects to DynamoDB
