@@ -1,0 +1,8 @@
+
+touch .gitignore
+
+echo ".terraform/" >> .gitignore
+echo "*.tfstate" >> .gitignore
+echo "*.tfstate.backup" >> .gitignore
+echo "*.zip" >> .gitignore
+echo ".DS_Store" >> .gitignore
