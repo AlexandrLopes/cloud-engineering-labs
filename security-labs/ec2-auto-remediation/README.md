@@ -46,15 +46,6 @@ The automation follows this strict logical flow:
 
 ---
 
-##  Project Structure
-
-```text
-.
-├── main.tf           # Terraform configuration (Lambda, EventBridge Rule, IAM Roles)
-├── remediation.py    # Python logic for event parsing and remediation
-└── README.md         # Documentation
-```
-
 ## How to Test
 
 1.  **Deploy the infrastructure:**
