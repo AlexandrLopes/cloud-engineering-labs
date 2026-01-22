@@ -92,13 +92,16 @@ resource "aws_iam_policy" "lambda_dynamo_policy" {
   name        = "lambda_dynamo_write_access"
   description = "Allows Lambda to write to DynamoDB"
 
+
   policy = jsonencode({
     Version = "2012-10-17"
     Statement = [
       {
         Action = [
           "dynamodb:PutItem",
-          "sns:Publish"
+          "dynamodb:UpdateItem",
+          "sns:Publish",
+          "s3:GetObject"
         ]
         Effect   = "Allow"
         Resource = "*"
