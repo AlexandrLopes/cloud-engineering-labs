@@ -1,4 +1,4 @@
-# 🐳 Python Web App on Docker
+#  Python Web App on Docker
 
 A simple Flask application containerized using Docker.
 This lab demonstrates the fundamental principles of **Containerization**: creating a custom image, managing dependencies, and running an isolated application locally.
