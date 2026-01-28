@@ -37,6 +37,16 @@ Scripts focused on **SecOps** and **FinOps** interacting directly with the AWS S
 
 ---
 
+
+## Containerization & DevOps
+Foundations of modern application deployment and isolation.
+
+| Project | Problem Solved | Tech Stack |
+| :--- | :--- | :--- |
+| [**Python Web App Container**](./docker-labs/python-web-app) | **App Isolation:** Containerizing a Flask application to ensure environment consistency ("It works on my machine") using Docker best practices. | `Docker`, `Python`, `Flask`, `Linux` |
+
+---
+
 ### About Me
 Cloud Engineer & Automation and Security Enthusiast.
 * **Certifications:** AWS Certified Cloud Practitioner (CLF-C02)
