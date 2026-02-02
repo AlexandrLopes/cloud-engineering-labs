@@ -1,35 +1,32 @@
-#  Python Web App on Docker
+# Python Web App (Docker + Compose)
 
-A simple Flask application containerized using Docker.
-This lab demonstrates the fundamental principles of **Containerization**: creating a custom image, managing dependencies, and running an isolated application locally.
+A Flask application containerized demonstrating **Environment Variables** and **Orchestration** with Docker Compose.
 
-##  Structure
-* `app.py`: The Python Flask web server.
-* `Dockerfile`: Instructions to build the secure container image (Linux Debian Slim + Python).
-* `requirements.txt`: Python dependencies.
+## Structure
+* `app.py`: Python web server that reads `APP_ENV` from the system.
+* `Dockerfile`: Instructions to build the secure container image.
+* `docker-compose.yml`: Orchestration file to define ports and config.
 
-##  How to Run
+## How to Run (The Easy Way)
 
-1.  **Prerequisites:**
-    * Docker Desktop installed and running.
-
-2.  **Build the Image:**
+1.  **Build & Run:**
+    Uses `docker-compose` to build the image and start the container with custom variables.
     ```bash
-    docker build -t my-python-app .
+    docker-compose up -d
     ```
 
-3.  **Run the Container:**
-    Maps the container's internal port (5000) to the local machine's port (8080).
+2.  **Access:**
+    Go to `http://localhost:8080`
+    You should see: *"Hello from Production (Alexandre's Lab)"*.
+
+3.  **Cleanup:**
+    To stop and remove everything:
     ```bash
-    docker run -d -p 8080:5000 --name python-lab my-python-app
+    docker-compose down
     ```
 
-4.  **Test:**
-    Open your browser at: `http://localhost:8080`
-    You should see the Container ID (Hostname).
-
-5.  **Cleanup:**
-    To stop and remove the container:
-    ```bash
-    docker rm -f python-lab
-    ```
+## Configuration
+You can change the environment without touching the code by editing `docker-compose.yml`:
+```yaml
+environment:
+  - APP_ENV=Staging

@@ -1,0 +1,13 @@
+version: '3.8'
+
+services:
+  web-app:
+    build: .
+    
+    ports:
+      - "8080:5000"
+    
+    environment:
+      - APP_ENV=Production (Alexandre's Lab)
+      
+    container_name: python-lab-automation
