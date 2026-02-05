@@ -1,20 +1,26 @@
-# 1. Base Image
+# Use an official Python runtime as a parent image
 FROM python:3.9-slim
 
-# 2. Set Working Directory
+# Set the working directory in the container
 WORKDIR /app
 
-# 3. Copy Requirements
-COPY requirements.txt .
+# Create a non-root user and group to run the application  
+RUN groupadd -r appuser && useradd -r -g appuser appuser
 
-# 4. Install Dependencies
+# Copy the current directory contents into the container at /app
+COPY . /app
+
+# Install any needed packages specified in requirements.txt
 RUN pip install --no-cache-dir -r requirements.txt
 
-# 5. Copy Application Code
-COPY app.py .
-
-# 6. Expose Port
+# Make port 5000 available to the world outside this container
 EXPOSE 5000
 
-# 7. Start Command
+# Define environment variable
+ENV NAME World
+
+# Switch to the non-root user 👈 (SEGURANÇA: Aqui a gente vira "civil")
+USER appuser
+
+# Run app.py when the container launches
 CMD ["python", "app.py"]
