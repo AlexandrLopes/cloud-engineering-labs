@@ -20,7 +20,7 @@ jobs:
                   scan-type: "config"
                   hide-progress: false
                   format: "table"
-                  exit-code: "0"
+                  exit-code: "1"
                   ignore-unfixed: true
                   severity: "CRITICAL,HIGH"
 
@@ -41,7 +41,7 @@ jobs:
               with:
                   image-ref: "my-python-app:${{ github.sha }}"
                   format: "table"
-                  exit-code: "0"
+                  exit-code: "1"
                   ignore-unfixed: true
                   vuln-type: "os,library"
                   severity: "CRITICAL,HIGH"
