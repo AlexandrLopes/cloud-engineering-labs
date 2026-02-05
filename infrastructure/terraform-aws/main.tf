@@ -32,7 +32,7 @@ resource "aws_security_group" "web_sg" {
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
   }
-  
+
   egress {
     description = "Allow HTTP outbound"
     from_port   = 80
@@ -58,7 +58,7 @@ data "aws_ami" "amazon_linux" {
 
 resource "aws_instance" "web_server" {
   ami                    = data.aws_ami.amazon_linux.id
-  instance_type          = var.instance_type 
+  instance_type          = var.instance_type
   subnet_id              = aws_subnet.public_subnet.id
   vpc_security_group_ids = [aws_security_group.web_sg.id]
 
@@ -80,9 +80,9 @@ resource "aws_instance" "web_server" {
               echo "<h1>Deployed via Terraform with Security Hardening</h1>" > /var/www/html/index.html
               EOF
 
-  tags = { 
-    Name = "${var.project_name}-server" 
-    }
+  tags = {
+    Name = "${var.project_name}-server"
+  }
 }
 
 # 4. STORAGE

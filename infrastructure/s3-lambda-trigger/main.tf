@@ -137,7 +137,7 @@ resource "aws_iam_role_policy_attachment" "attach_dynamo" {
 # SNS TOPIC
 resource "aws_sns_topic" "security_alerts" {
   name              = "s3-security-alerts-topic"
-  kms_master_key_id = "alias/aws/sns" 
+  kms_master_key_id = "alias/aws/sns"
 }
 
 resource "aws_sns_topic_subscription" "email_target" {
