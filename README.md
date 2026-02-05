@@ -13,7 +13,7 @@ Implementing **Shift-Left Security** to detect vulnerabilities before deployment
 
 | Project | Problem Solved | Tech Stack |
 | :--- | :--- | :--- |
-| [**Automated Security Pipeline**](.github/workflows/security-scan.yml) | **Continuous Security:** A GitHub Actions workflow that automatically scans IaC (Terraform) for misconfigurations and Docker images for CVEs using **Trivy**. Blocks the build if Critical vulnerabilities are found. | `GitHub Actions`, `Trivy`, `CI/CD` |
+| [**Automated Security Pipeline**](.github/workflows/security-scan.yaml) | **Continuous Security:** A GitHub Actions workflow that automatically scans IaC (Terraform) for misconfigurations and Docker images for CVEs using **Trivy**. Blocks the build if Critical vulnerabilities are found. | `GitHub Actions`, `Trivy`, `CI/CD` |
 
 ---
 
