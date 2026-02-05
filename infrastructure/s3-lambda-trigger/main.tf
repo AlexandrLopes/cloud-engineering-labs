@@ -13,7 +13,26 @@ variable "alert_email" {
 
 resource "aws_s3_bucket" "incoming_bucket" {
   bucket        = "invoice-processor-${random_id.bucket_suffix.hex}"
-  force_destroy = true # Allow destroy the bucket (Lab only)
+  force_destroy = true #Labs only
+}
+
+resource "aws_s3_bucket_server_side_encryption_configuration" "incoming_bucket_encryption" {
+  bucket = aws_s3_bucket.incoming_bucket.id
+
+  rule {
+    apply_server_side_encryption_by_default {
+      sse_algorithm = "AES256"
+    }
+  }
+}
+
+resource "aws_s3_bucket_public_access_block" "incoming_bucket_access" {
+  bucket = aws_s3_bucket.incoming_bucket.id
+
+  block_public_acls       = true
+  block_public_policy     = true
+  ignore_public_acls      = true
+  restrict_public_buckets = true
 }
 
 data "archive_file" "lambda_zip" {
@@ -117,7 +136,8 @@ resource "aws_iam_role_policy_attachment" "attach_dynamo" {
 
 # SNS TOPIC
 resource "aws_sns_topic" "security_alerts" {
-  name = "s3-security-alerts-topic"
+  name              = "s3-security-alerts-topic"
+  kms_master_key_id = "alias/aws/sns" 
 }
 
 resource "aws_sns_topic_subscription" "email_target" {

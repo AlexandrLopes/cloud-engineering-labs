@@ -1,4 +1,16 @@
+# -----------------------------------------------------------------------------
+# TRIVY IGNORE LIST - Cloud Engineering Labs
+# -----------------------------------------------------------------------------
+
+# AVD-AWS-0164: Subnet Pública
 # We accept the risk of public IP in the subnet to facilitate access to the Web Lab.
 AVD-AWS-0164
+
+# AVD-AWS-0132: S3 sem Chave Customer Managed (KMS CMK)
 # We agree to use free S3 standard encryption (AES256) instead of paying for KMS (CMK).
 AVD-AWS-0132
+
+# AVD-AWS-0104: Security Group Egress Aberto (0.0.0.0/0)
+# Necessary for 'yum update' works 
+# Mitigation: We have already restricted it to TCP ports 80 and 443 in the code.
+AVD-AWS-0104
