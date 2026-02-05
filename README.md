@@ -1,4 +1,5 @@
 # Cloud Engineering Labs
+[![DevSecOps Security Scan](https://github.com/AlexandrLopes/cloud-engineering-labs/actions/workflows/security-scan.yaml/badge.svg)](https://github.com/AlexandrLopes/cloud-engineering-labs/actions/workflows/security-scan.yaml)
 
 Welcome to my practical Cloud Engineering portfolio.
 This repository documents my technical journey in solving real-world infrastructure, security, and cost problems using **AWS**, **Python**, and **Terraform**.
