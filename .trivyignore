@@ -1,0 +1,4 @@
+# We accept the risk of public IP in the subnet to facilitate access to the Web Lab.
+AVD-AWS-0164
+# We agree to use free S3 standard encryption (AES256) instead of paying for KMS (CMK).
+AVD-AWS-0132
