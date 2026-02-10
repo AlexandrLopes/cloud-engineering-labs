@@ -2,7 +2,7 @@ import boto3
 from datetime import datetime, timezone
 
 # CONFIGURATION
-BUCKET_NAME = 'nome-do-seu-bucket-de-teste' # Troque pelo seu bucket real quando for testar
+BUCKET_NAME = 'name-of-test-bucket'
 DAYS_TO_KEEP = 30 
 
 def clean_old_files():
