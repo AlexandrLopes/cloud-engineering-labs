@@ -1,7 +1,7 @@
 import boto3
 from datetime import datetime, timezone
 
-# CONFIGURATION
+# Configuration
 BUCKET_NAME = 'name-of-test-bucket'
 DAYS_TO_KEEP = 30 
 
