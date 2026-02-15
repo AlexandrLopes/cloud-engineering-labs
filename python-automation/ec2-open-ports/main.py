@@ -6,9 +6,8 @@ import json
 RISKY_PORTS = [22, 3389, 8080] 
 
 def audit_security_groups():
-    """
-    Audits AWS Security Groups to find public open ports.
-    """
+    
+    #Audits AWS Security Groups to find public open ports.
     ec2 = boto3.client('ec2')
     
     try:
