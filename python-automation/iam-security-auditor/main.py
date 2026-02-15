@@ -32,7 +32,7 @@ def audit_iam_users():
             
             for key in keys:
                 key_id = key['AccessKeyId']
-                status = key['Status'] # Active ou Inactive
+                status = key['Status'] # Enable ou Disable
                 create_date = key['CreateDate']
                 
                 # age of the keys
