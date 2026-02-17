@@ -6,9 +6,9 @@ BUCKET_NAME = 'name-of-test-bucket'
 DAYS_TO_KEEP = 30 
 
 def clean_old_files():
-    """
-    Deletes files from an S3 bucket that are older than DAYS_TO_KEEP.
-    """
+    
+    # Deleted files from an S3 bucket that are older than DAYS_TO_KEEP.
+    
     s3 = boto3.client('s3')
     
     try:
