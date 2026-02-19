@@ -1,3 +1,20 @@
+terraform {
+  required_providers {
+    aws = {
+      source  = "hashicorp/aws"
+      version = "~> 5.0"
+    }
+  }
+
+  backend "s3" {
+    bucket         = "alexandre-labs-terraform-state-2026"
+    key            = "aws-web-app/terraform.tfstate"
+    region         = "us-east-1"
+    dynamodb_table = "terraform-state-locks"
+    encrypt        = true
+  }
+}
+
 # 1. NETWORKING
 resource "aws_vpc" "main_lab_vpc" {
   cidr_block = "10.0.0.0/16"
@@ -92,10 +109,8 @@ resource "random_id" "bucket_suffix" {
 
 resource "aws_s3_bucket" "project_bucket" {
   bucket = "cloud-labs-${random_id.bucket_suffix.hex}"
-  # force_destroy = true # Carefull: Only for Labs propourses. For prod, must be false or removed.
 }
 
-# 🛡️ SEGURANÇA (FIX AVD-AWS-0088): Criptografia Padrão (SSE-S3)
 resource "aws_s3_bucket_server_side_encryption_configuration" "project_bucket_encryption" {
   bucket = aws_s3_bucket.project_bucket.id
 
@@ -106,7 +121,6 @@ resource "aws_s3_bucket_server_side_encryption_configuration" "project_bucket_en
   }
 }
 
-# 🛡️ SEGURANÇA (FIX AVD-AWS-0086/87/91/93): Bloqueio Total de Acesso Público
 resource "aws_s3_bucket_public_access_block" "project_bucket_access" {
   bucket = aws_s3_bucket.project_bucket.id
 
