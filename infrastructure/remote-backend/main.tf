@@ -5,7 +5,7 @@ provider "aws" {
 # 1. Bucket S3
 resource "aws_s3_bucket" "terraform_state" {
   bucket        = "alexandre-labs-terraform-state-2026"
-  force_destroy = true 
+  force_destroy = true
 }
 
 resource "aws_s3_bucket_versioning" "state_versioning" {
@@ -38,7 +38,7 @@ resource "aws_s3_bucket_public_access_block" "state_access" {
 resource "aws_dynamodb_table" "terraform_locks" {
   name         = "terraform-state-locks"
   billing_mode = "PAY_PER_REQUEST"
-  hash_key     = "LockID" 
+  hash_key     = "LockID"
 
   attribute {
     name = "LockID"
@@ -48,7 +48,7 @@ resource "aws_dynamodb_table" "terraform_locks" {
   server_side_encryption {
     enabled = true
   }
-  
+
   point_in_time_recovery {
     enabled = true
   }
