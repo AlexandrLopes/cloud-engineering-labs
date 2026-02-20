@@ -15,24 +15,17 @@ terraform {
   }
 }
 
-# 1. NETWORKING
-resource "aws_vpc" "main_lab_vpc" {
-  cidr_block = "10.0.0.0/16"
-  tags       = { Name = "${var.project_name}-vpc" }
-}
-
-resource "aws_subnet" "public_subnet" {
-  vpc_id                  = aws_vpc.main_lab_vpc.id
-  cidr_block              = "10.0.1.0/24"
-  map_public_ip_on_launch = true
-  tags                    = { Name = "${var.project_name}-public-subnet" }
+# 1. NETWORKING (Agora puxando direto do Módulo!)
+module "networking" {
+  source       = "./modules/network"
+  project_name = var.project_name
 }
 
 # 2. SECURITY GROUP
 resource "aws_security_group" "web_sg" {
   name        = "${var.project_name}-web-sg"
   description = "Allow HTTP inbound traffic and secure outbound"
-  vpc_id      = aws_vpc.main_lab_vpc.id
+  vpc_id      = module.networking.vpc_id
 
   ingress {
     description = "HTTP from Internet"
@@ -76,7 +69,7 @@ data "aws_ami" "amazon_linux" {
 resource "aws_instance" "web_server" {
   ami                    = data.aws_ami.amazon_linux.id
   instance_type          = var.instance_type
-  subnet_id              = aws_subnet.public_subnet.id
+  subnet_id              = module.networking.subnet_id
   vpc_security_group_ids = [aws_security_group.web_sg.id]
 
   metadata_options {
