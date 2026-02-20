@@ -62,7 +62,8 @@ Foundations of modern application deployment and isolation.
 
 | Project | Problem Solved | Tech Stack |
 | :--- | :--- | :--- |
-| [**Hardened Python Web App**](./docker-labs/python-web-app) | **App Isolation & Security:** Containerizing a Flask application ensuring environment consistency. Includes **OS Patching** and runs as a **Non-Root User** to mitigate container breakout risks. | `Docker`, `Python`, `Flask`, `Linux Hardening` |
+| [**Hardened Python Web App**](./docker-labs/python-web-app) | **App Isolation & Security:** Containerizing a Flask application ensuring environment consistency. Includes OS Patching and runs as a Non-Root User to mitigate container breakout risks. | `Docker`, `Python`, `Flask`, `Linux Hardening` |
+| [**Secure Multi-stage Build**](./docker-labs/secure-multistage-build) | **Image Optimization & Attack Surface Reduction:** Implementing multi-stage builds to separate the build environment from the runtime. Reduces image size and eliminates system compilers from production, neutralizing secondary malware execution. | `Docker`, `Python`, `Multi-stage` |
 
 ---
 
