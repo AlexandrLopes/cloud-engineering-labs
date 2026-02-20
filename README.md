@@ -36,6 +36,16 @@ Provisioning modern, versioned, and immutable infrastructure.
 
 ---
 
+## Architecture & Best Practices Implemented
+Foundational infrastructure design focusing on scalability and team collaboration.
+
+| Component | Problem Solved | Tech Stack |
+| :--- | :--- | :--- |
+| [**Modular Networking**](./infrastructure/terraform-aws/modules/network) | **Modular Architecture:** Infrastructure is divided into reusable Terraform modules to keep the root code clean, maintainable, and scalable. | `Terraform`, `AWS VPC` |
+| [**Remote State Backend**](./infrastructure/remote-backend) | **State Management & Locking:** Terraform state (`.tfstate`) is securely stored in S3, with concurrency managed by DynamoDB to prevent split-brain issues. | `Terraform`, `S3`, `DynamoDB` |
+
+---
+
 ## Python Automation (Boto3)
 Scripts focused on **SecOps** and **FinOps** interacting directly with the AWS SDK.
 
