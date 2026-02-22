@@ -6,10 +6,10 @@ app = Flask(__name__)
 
 @app.route('/')
 def hello_world():
-    # Get the hostname (inside Docker, this is the Container ID)
+    # Get the hostname (inside Docker)
     hostname = socket.gethostname()
     
-    # Get the Environment Variable (Default to 'Development' if not set)
+    # Get the Environment Variable 
     env_name = os.getenv('APP_ENV', 'Development')
     
     return f'''
