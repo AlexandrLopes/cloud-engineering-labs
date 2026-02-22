@@ -26,7 +26,7 @@ def audit_security_groups():
                     from_port = rule['FromPort']
                     to_port = rule.get('ToPort', from_port)
                     
-                    for ip_range in rule['IpRanges']: # Check if connection is open to the world (0.0.0.0/0)
+                    for ip_range in rule['IpRanges']: 
                         cidr = ip_range.get('CidrIp')
                         
                         if cidr == '0.0.0.0/0':

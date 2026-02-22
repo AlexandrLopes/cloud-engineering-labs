@@ -15,7 +15,7 @@ def create_table_if_not_exists(dynamodb):
                 {'AttributeName': 'timestamp', 'KeyType': 'RANGE'} # Sort Key
             ],
             AttributeDefinitions=[
-                {'AttributeName': 'alert_id', 'AttributeType': 'S'}, # S = String
+                {'AttributeName': 'alert_id', 'AttributeType': 'S'}, 
                 {'AttributeName': 'timestamp', 'AttributeType': 'S'}
             ],
             ProvisionedThroughput={
