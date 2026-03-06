@@ -26,8 +26,3 @@ To verify the image size reduction and run the container:
 docker images | grep secure-multistage-app
 docker run -d -p 8080:8080 secure-multistage-app:latest
 ```
-Após salvar, o script de envio continua o mesmo no terminal:
-
-git add docker-labs/secure-multistage-build/README.md
-git commit -m "docs: add technical readme for secure multistage build lab"
-git push origin main
