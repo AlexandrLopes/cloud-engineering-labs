@@ -109,8 +109,7 @@ resource "aws_dynamodb_table" "audit_table" {
 
 resource "aws_iam_policy" "lambda_dynamo_policy" {
   name        = "lambda_dynamo_write_access"
-  description = "Allows Lambda to write to DynamoDB"
-
+  description = "Allows Lambda to read from the specific S3 bucket, write to the specific DynamoDB table, and publish to the specific SNS topic."
 
   policy = jsonencode({
     Version = "2012-10-17"
@@ -118,13 +117,21 @@ resource "aws_iam_policy" "lambda_dynamo_policy" {
       {
         Action = [
           "dynamodb:PutItem",
-          "dynamodb:UpdateItem",
-          "sns:Publish",
-          "s3:GetObject"
+          "dynamodb:UpdateItem"
         ]
         Effect   = "Allow"
-        Resource = "*"
+        Resource = aws_dynamodb_table.audit_table.arn
       },
+      {
+        Action   = "sns:Publish"
+        Effect   = "Allow"
+        Resource = aws_sns_topic.security_alerts.arn
+      },
+      {
+        Action   = "s3:GetObject"
+        Effect   = "Allow"
+        Resource = "${aws_s3_bucket.incoming_bucket.arn}/*"
+      }
     ]
   })
 }
