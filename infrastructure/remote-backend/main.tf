@@ -2,7 +2,6 @@ provider "aws" {
   region = "us-east-1"
 }
 
-# 1. Bucket S3
 resource "aws_s3_bucket" "terraform_state" {
   bucket        = "alexandre-labs-terraform-state-2026"
   force_destroy = true
@@ -15,7 +14,7 @@ resource "aws_s3_bucket_versioning" "state_versioning" {
   }
 }
 
-# 🛡️ SEGURANÇA S3 (FIX TRIVY): Criptografia
+# Trivy: Cryptography
 resource "aws_s3_bucket_server_side_encryption_configuration" "state_encryption" {
   bucket = aws_s3_bucket.terraform_state.id
   rule {
@@ -25,7 +24,7 @@ resource "aws_s3_bucket_server_side_encryption_configuration" "state_encryption"
   }
 }
 
-# 🛡️ SEGURANÇA S3 (FIX TRIVY): Bloqueio Público
+# Trivy: Public Access Block 
 resource "aws_s3_bucket_public_access_block" "state_access" {
   bucket                  = aws_s3_bucket.terraform_state.id
   block_public_acls       = true
@@ -34,7 +33,6 @@ resource "aws_s3_bucket_public_access_block" "state_access" {
   restrict_public_buckets = true
 }
 
-# 2. Tabela DynamoDB
 resource "aws_dynamodb_table" "terraform_locks" {
   name         = "terraform-state-locks"
   billing_mode = "PAY_PER_REQUEST"
