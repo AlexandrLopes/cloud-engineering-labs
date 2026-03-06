@@ -15,13 +15,12 @@ terraform {
   }
 }
 
-# 1. NETWORKING (Agora puxando direto do Módulo!)
+# Networking (from module)
 module "networking" {
   source       = "./modules/network"
   project_name = var.project_name
 }
 
-# 2. SECURITY GROUP
 resource "aws_security_group" "web_sg" {
   name        = "${var.project_name}-web-sg"
   description = "Allow HTTP inbound traffic and secure outbound"
@@ -56,7 +55,7 @@ resource "aws_security_group" "web_sg" {
   }
 }
 
-# 3. COMPUTE
+# Compute
 data "aws_ami" "amazon_linux" {
   most_recent = true
   owners      = ["amazon"]
@@ -95,7 +94,7 @@ resource "aws_instance" "web_server" {
   }
 }
 
-# 4. STORAGE
+# Storage
 resource "random_id" "bucket_suffix" {
   byte_length = 4
 }
