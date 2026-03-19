@@ -45,7 +45,7 @@ resource "aws_lambda_function" "processor_lambda" {
   filename         = data.archive_file.lambda_zip.output_path
   function_name    = "S3_Event_Processor"
   role             = aws_iam_role.iam_for_lambda.arn
-  handler          = "processor.handler"
+  handler          = "processor.lambda_handler"
   runtime          = "python3.9"
   source_code_hash = data.archive_file.lambda_zip.output_base64sha256
   environment {
