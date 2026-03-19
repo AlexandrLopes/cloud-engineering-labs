@@ -12,7 +12,7 @@ sns_client = boto3.client('sns')
 
 # Environment Variables
 TABLE_NAME = "S3_File_Audit_Log"
-SNS_TOPIC_ARN = os.environ['SNS_TOPIC_ARN']
+SNS_TOPIC_ARN = os.getenv('SNS_TOPIC_ARN', 'LOCAL_TEST')
 
 def lambda_handler(event, context):
     try:
