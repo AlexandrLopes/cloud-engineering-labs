@@ -1,0 +1,127 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: "Serverless IAM Security Checker: Scans for users without MFA and sends SNS alerts. Trivy compliant (Least Privilege)."
+
+Parameters:
+  AlertEmail:
+    Type: String
+    Description: Email address to receive security alerts
+    Default: security@example.com
+
+Resources:
+  # 1. SNS Topic for Alerts
+  SecurityAlertTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      TopicName: iam-security-alerts
+
+  # 2. SNS Subscription
+  SecurityAlertSubscription:
+    Type: AWS::SNS::Subscription
+    Properties:
+      Protocol: email
+      TopicArn: !Ref SecurityAlertTopic
+      Endpoint: !Ref AlertEmail
+
+  # 3. Least Privilege IAM Role for Lambda
+  LambdaExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: SecurityAuditPolicy
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - logs:CreateLogGroup
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                Resource: arn:aws:logs:*:*:*
+              - Effect: Allow
+                Action:
+                  - iam:ListUsers
+                  - iam:ListMFADevices
+                Resource: "*" # Required by AWS for IAM list actions
+              - Effect: Allow
+                Action: sns:Publish
+                Resource: !Ref SecurityAlertTopic
+
+  # 4. The Lambda Function
+  SecurityAuditLambda:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: iam-mfa-auditor
+      Handler: index.lambda_handler
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Runtime: python3.12
+      Timeout: 30
+      Environment:
+        Variables:
+          SNS_TOPIC_ARN: !Ref SecurityAlertTopic
+      Code:
+        ZipFile: |
+          import boto3
+          import os
+
+          def lambda_handler(event, context):
+              iam = boto3.client('iam')
+              sns = boto3.client('sns')
+              topic_arn = os.environ['SNS_TOPIC_ARN']
+              
+              try:
+                  users = iam.list_users()['Users']
+                  users_without_mfa = []
+                  
+                  for user in users:
+                      mfa_devices = iam.list_mfa_devices(UserName=user['UserName'])
+                      if not mfa_devices['MFADevices']:
+                          users_without_mfa.append(user['UserName'])
+                  
+                  if users_without_mfa:
+                      message = "CRITICAL SECURITY ALERT:\n\nThe following IAM Users do NOT have MFA enabled:\n"
+                      for u in users_without_mfa:
+                          message += f"- {u}\n"
+                      
+                      message += "\nPlease enforce MFA immediately to comply with CIS benchmarks."
+                      
+                      sns.publish(
+                          TopicArn=topic_arn,
+                          Subject="AWS IAM Security Alert: Missing MFA",
+                          Message=message
+                      )
+                      print(f"Alert sent for {len(users_without_mfa)} users.")
+                  else:
+                      print("All users are compliant. No alert needed.")
+                      
+                  return {"status": 200, "message": "Audit completed successfully."}
+                  
+              except Exception as e:
+                  print(f"Error during audit: {str(e)}")
+                  raise e
+
+  # 5. EventBridge Rule (Cron Job - Runs every day at 08:00 UTC)
+  DailyAuditRule:
+    Type: AWS::Events::Rule
+    Properties:
+      Name: daily-iam-audit
+      ScheduleExpression: cron(0 8 * * ? *)
+      State: ENABLED
+      Targets:
+        - Arn: !GetAtt SecurityAuditLambda.Arn
+          Id: TargetFunctionV1
+
+  # 6. Permission for EventBridge to invoke the Lambda
+  PermissionForEventsToInvokeLambda:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref SecurityAuditLambda
+      Action: lambda:InvokeFunction
+      Principal: events.amazonaws.com
+      SourceArn: !GetAtt DailyAuditRule.Arn
