@@ -2,16 +2,32 @@ AWSTemplateFormatVersion: "2010-09-09"
 Description: "Serverless Event-Driven Architecture for High-Volume eSIM Order Processing using SQS, Lambda, and DynamoDB."
 
 Resources:
-  # 1. SQS Queue (Absorbs thousands of incoming orders without overwhelming the system)
+  # 1. Customer Managed KMS Key (Fixes Trivy AWS-0135)
+  EsimKmsKey:
+    Type: AWS::KMS::Key
+    Properties:
+      Description: "Customer Managed Key for SQS encryption"
+      EnableKeyRotation: true
+      KeyPolicy:
+        Version: "2012-10-17"
+        Statement:
+          - Sid: Enable IAM User Permissions
+            Effect: Allow
+            Principal:
+              AWS: !Sub "arn:aws:iam::${AWS::AccountId}:root"
+            Action: kms:*
+            Resource: "*"
+
+  # 2. SQS Queue (Encrypted with Customer Managed Key)
   EsimOrdersQueue:
     Type: AWS::SQS::Queue
     Properties:
       QueueName: esim-orders-queue
       VisibilityTimeout: 30
-      KmsMasterKeyId: alias/aws/sqs
+      KmsMasterKeyId: !GetAtt EsimKmsKey.Arn
       KmsDataKeyReusePeriodSeconds: 300
 
-  # 2. DynamoDB Table (High-performance NoSQL database to store active eSIM profiles)
+  # 3. DynamoDB Table (High-performance NoSQL database)
   EsimProfilesTable:
     Type: AWS::DynamoDB::Table
     Properties:
@@ -24,7 +40,7 @@ Resources:
         - AttributeName: order_id
           KeyType: HASH
 
-  # 3. IAM Role (Strict Least Privilege: Can only read from the queue and write to the table)
+  # 4. IAM Role (Strict Least Privilege + KMS Decrypt permissions)
   EsimProcessorRole:
     Type: AWS::IAM::Role
     Properties:
@@ -52,12 +68,17 @@ Resources:
                 Resource: !GetAtt EsimProfilesTable.Arn
               - Effect: Allow
                 Action:
+                  - kms:Decrypt
+                  - kms:GenerateDataKey
+                Resource: !GetAtt EsimKmsKey.Arn
+              - Effect: Allow
+                Action:
                   - logs:CreateLogGroup
                   - logs:CreateLogStream
                   - logs:PutLogEvents
                 Resource: arn:aws:logs:*:*:*
 
-  # 4. AWS Lambda (Pulls orders from the SQS queue and generates the eSIM profile)
+  # 5. AWS Lambda (Pulls orders from the SQS queue and generates the eSIM profile)
   EsimProcessorLambda:
     Type: AWS::Lambda::Function
     Properties:
@@ -81,20 +102,16 @@ Resources:
           table = dynamodb.Table(table_name)
 
           def lambda_handler(event, context):
-              # The event contains a batch of messages from the SQS queue
               for record in event['Records']:
                   try:
-                      # Parse the message payload
                       payload = json.loads(record['body'])
                       order_id = payload.get('order_id', str(uuid.uuid4()))
                       customer_id = payload.get('customer_id', 'UNKNOWN')
                       
                       print(f"Processing eSIM order for customer: {customer_id}")
                       
-                      # Simulate the cryptographic generation of an eSIM ICCID
                       simulated_iccid = f"8901410321111{str(uuid.uuid4().int)[:6]}"
                       
-                      # Save the active eSIM profile to DynamoDB
                       table.put_item(
                           Item={
                               'order_id': order_id,
@@ -107,15 +124,14 @@ Resources:
                       
                   except Exception as e:
                       print(f"Error processing order: {str(e)}")
-                      # In a production environment, this message would be sent to a Dead Letter Queue (DLQ)
               
               return {"status": 200, "message": "Batch processed successfully"}
 
-  # 5. Event Source Mapping (Connects the SQS Queue to the Lambda Function)
+  # 6. Event Source Mapping (Connects the SQS Queue to the Lambda Function)
   LambdaSqsTrigger:
     Type: AWS::Lambda::EventSourceMapping
     Properties:
       EventSourceArn: !GetAtt EsimOrdersQueue.Arn
       FunctionName: !Ref EsimProcessorLambda
-      BatchSize: 10 # Pulls up to 10 orders per batch for processing efficiency
+      BatchSize: 10
       Enabled: true
