@@ -1,0 +1,119 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: "Serverless Event-Driven Architecture for High-Volume eSIM Order Processing using SQS, Lambda, and DynamoDB."
+
+Resources:
+  # 1. SQS Queue (Absorbs thousands of incoming orders without overwhelming the system)
+  EsimOrdersQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: esim-orders-queue
+      VisibilityTimeout: 30
+
+  # 2. DynamoDB Table (High-performance NoSQL database to store active eSIM profiles)
+  EsimProfilesTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: esim-active-profiles
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: order_id
+          AttributeType: S
+      KeySchema:
+        - AttributeName: order_id
+          KeyType: HASH
+
+  # 3. IAM Role (Strict Least Privilege: Can only read from the queue and write to the table)
+  EsimProcessorRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: EsimProcessingPolicy
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - sqs:ReceiveMessage
+                  - sqs:DeleteMessage
+                  - sqs:GetQueueAttributes
+                Resource: !GetAtt EsimOrdersQueue.Arn
+              - Effect: Allow
+                Action:
+                  - dynamodb:PutItem
+                Resource: !GetAtt EsimProfilesTable.Arn
+              - Effect: Allow
+                Action:
+                  - logs:CreateLogGroup
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                Resource: arn:aws:logs:*:*:*
+
+  # 4. AWS Lambda (Pulls orders from the SQS queue and generates the eSIM profile)
+  EsimProcessorLambda:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: esim-order-processor
+      Handler: index.lambda_handler
+      Role: !GetAtt EsimProcessorRole.Arn
+      Runtime: python3.12
+      Timeout: 10
+      Environment:
+        Variables:
+          DYNAMO_TABLE: !Ref EsimProfilesTable
+      Code:
+        ZipFile: |
+          import boto3
+          import os
+          import json
+          import uuid
+
+          dynamodb = boto3.resource('dynamodb')
+          table_name = os.environ['DYNAMO_TABLE']
+          table = dynamodb.Table(table_name)
+
+          def lambda_handler(event, context):
+              # The event contains a batch of messages from the SQS queue
+              for record in event['Records']:
+                  try:
+                      # Parse the message payload
+                      payload = json.loads(record['body'])
+                      order_id = payload.get('order_id', str(uuid.uuid4()))
+                      customer_id = payload.get('customer_id', 'UNKNOWN')
+                      
+                      print(f"Processing eSIM order for customer: {customer_id}")
+                      
+                      # Simulate the cryptographic generation of an eSIM ICCID
+                      simulated_iccid = f"8901410321111{str(uuid.uuid4().int)[:6]}"
+                      
+                      # Save the active eSIM profile to DynamoDB
+                      table.put_item(
+                          Item={
+                              'order_id': order_id,
+                              'customer_id': customer_id,
+                              'iccid': simulated_iccid,
+                              'status': 'ACTIVATED'
+                          }
+                      )
+                      print(f"Successfully generated and stored eSIM ICCID: {simulated_iccid}")
+                      
+                  except Exception as e:
+                      print(f"Error processing order: {str(e)}")
+                      # In a production environment, this message would be sent to a Dead Letter Queue (DLQ)
+              
+              return {"status": 200, "message": "Batch processed successfully"}
+
+  # 5. Event Source Mapping (Connects the SQS Queue to the Lambda Function)
+  LambdaSqsTrigger:
+    Type: AWS::Lambda::EventSourceMapping
+    Properties:
+      EventSourceArn: !GetAtt EsimOrdersQueue.Arn
+      FunctionName: !Ref EsimProcessorLambda
+      BatchSize: 10 # Pulls up to 10 orders per batch for processing efficiency
+      Enabled: true
