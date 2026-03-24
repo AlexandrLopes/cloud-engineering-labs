@@ -22,7 +22,8 @@ Event-driven, serverless architectures provisioned entirely with native AWS IaC.
 
 | Project | Problem Solved | Tech Stack |
 | :--- | :--- | :--- |
-| [**Serverless IAM Security Checker**](./cfn-iam-security-checker) | **Compliance Automation:** A CloudFormation template that provisions an EventBridge cron job, an SNS Topic, and a Python Lambda function to audit IAM users daily for missing MFA, enforcing CIS Benchmarks. | `CloudFormation`, `Lambda`, `EventBridge`, `SNS` |
+| [**Serverless High-Volume eSIM Processor**](./infrastructure/cloudformation/serverless-esim-order-processor) | **Scalability & Resiliency:** A decoupled architecture using **SQS** to queue thousands of incoming eSIM orders, preventing database overload. **Lambda** processes the queue in batches and stores the active profiles in **DynamoDB**. | `CloudFormation`, `SQS`, `Lambda`, `DynamoDB` |
+| [**Serverless IAM Security Checker**](./infrastructure/cloudformation/cfn-iam-security-checker) | **Compliance Automation:** A CloudFormation template that provisions an EventBridge cron job, an SNS Topic, and a Python Lambda function to audit IAM users daily for missing MFA, enforcing CIS Benchmarks. | `CloudFormation`, `Lambda`, `EventBridge`, `SNS` |
 
 ---
 
