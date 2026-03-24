@@ -8,6 +8,7 @@ Resources:
     Properties:
       QueueName: esim-orders-queue
       VisibilityTimeout: 30
+      SqsManagedSseEnabled: true
 
   # 2. DynamoDB Table (High-performance NoSQL database to store active eSIM profiles)
   EsimProfilesTable:
