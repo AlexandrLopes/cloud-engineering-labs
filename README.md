@@ -2,7 +2,7 @@
 [![DevSecOps Security Scan](https://github.com/AlexandrLopes/cloud-engineering-labs/actions/workflows/security-scan.yaml/badge.svg)](https://github.com/AlexandrLopes/cloud-engineering-labs/actions/workflows/security-scan.yaml)
 
 Welcome to my practical Cloud Engineering portfolio.
-This repository documents my technical journey in solving real-world infrastructure, security, and cost problems using **AWS**, **Python**, **Terraform**, and **DevSecOps** practices.
+This repository documents my technical journey in solving real-world infrastructure, security, and cost problems using **AWS**, **Python**, **Terraform**, **CloudFormation**, and **DevSecOps** practices.
 
 **Automation, Security, Infrastructure as Code, and Shift-Left Security.**
 
@@ -14,6 +14,15 @@ Implementing **Shift-Left Security** to detect vulnerabilities before deployment
 | Project | Problem Solved | Tech Stack |
 | :--- | :--- | :--- |
 | [**Automated Security Pipeline**](.github/workflows/security-scan.yaml) | **Continuous Security:** A GitHub Actions workflow that automatically scans IaC (Terraform) for misconfigurations and Docker images for CVEs using **Trivy**. Blocks the build if Critical vulnerabilities are found. | `GitHub Actions`, `Trivy`, `CI/CD` |
+
+---
+
+## Cloud-Native Infrastructure (CloudFormation)
+Event-driven, serverless architectures provisioned entirely with native AWS IaC.
+
+| Project | Problem Solved | Tech Stack |
+| :--- | :--- | :--- |
+| [**Serverless IAM Security Checker**](./cfn-iam-security-checker) | **Compliance Automation:** A CloudFormation template that provisions an EventBridge cron job, an SNS Topic, and a Python Lambda function to audit IAM users daily for missing MFA, enforcing CIS Benchmarks. | `CloudFormation`, `Lambda`, `EventBridge`, `SNS` |
 
 ---
 
