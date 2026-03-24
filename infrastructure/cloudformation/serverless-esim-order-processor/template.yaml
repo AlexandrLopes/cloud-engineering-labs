@@ -8,7 +8,8 @@ Resources:
     Properties:
       QueueName: esim-orders-queue
       VisibilityTimeout: 30
-      SqsManagedSseEnabled: true
+      KmsMasterKeyId: alias/aws/sqs
+      KmsDataKeyReusePeriodSeconds: 300
 
   # 2. DynamoDB Table (High-performance NoSQL database to store active eSIM profiles)
   EsimProfilesTable:
