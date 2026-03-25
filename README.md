@@ -8,12 +8,21 @@ This repository documents my technical journey in solving real-world infrastruct
 
 ---
 
-## DevSecOps & CI/CD Pipeline (New)
+## DevSecOps & CI/CD Pipeline
 Implementing **Shift-Left Security** to detect vulnerabilities before deployment.
 
 | Project | Problem Solved | Tech Stack |
 | :--- | :--- | :--- |
 | [**Automated Security Pipeline**](.github/workflows/security-scan.yaml) | **Continuous Security:** A GitHub Actions workflow that automatically scans IaC (Terraform) for misconfigurations and Docker images for CVEs using **Trivy**. Blocks the build if Critical vulnerabilities are found. | `GitHub Actions`, `Trivy`, `CI/CD` |
+
+---
+
+## Platform Engineering & Developer Enablement (New)
+Building internal developer platforms to reduce friction and accelerate delivery.
+
+| Project | Problem Solved | Tech Stack |
+| :--- | :--- | :--- |
+| [**Automated CI/CD Pipeline Builder**](./infrastructure/cloudformation/automated-cicd-pipeline) | **Developer Experience (DevEx):** A CloudFormation template that instantly provisions a secure Git repository (**CodeCommit**), a build server (**CodeBuild**), and an automated orchestrator (**CodePipeline**). Developers just need to push code, eliminating infrastructure overhead. | `CloudFormation`, `CodePipeline`, `CodeBuild`, `IAM` |
 
 ---
 
@@ -81,7 +90,7 @@ Foundations of modern application deployment and isolation.
 Cloud Engineer & Automation and Security Enthusiast.
 * **Certifications:** AWS Certified Cloud Practitioner (CLF-C02)
 * **Focus:** AWS, Python, Terraform, Security (SecOps), DevSecOps.
-* **Languages:** English (C2), Spanish (B2), Portuguese (Native).
+* **Languages:** English (C2), Portuguese (Native), Spanish (intermediate).
 
 ---
 *This repository is maintained via local CI/CD, protected by Trivy scans, and versioned with Git.*
