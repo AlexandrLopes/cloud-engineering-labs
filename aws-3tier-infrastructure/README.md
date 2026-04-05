@@ -5,7 +5,7 @@ A production-style 3-tier architecture on AWS, provisioned entirely with **Terra
 
 ## Architecture
 
-**Internet** -> **[Tier 1] Bastion Host** (Public Subnet 10.0.1.0/24) -> SSH Agent Forwarding -> **[Tier 2] Backend EC2** (Private Subnet 10.0.2.0/24) -> PostgreSQL port 5432 -> **[Tier 3] Database** (Private Subnet 10.0.3.0/24)
+**Internet** ➝ **[Tier 1] Bastion Host** (Public Subnet 10.0.1.0/24) ➝ SSH Agent Forwarding ➝ **[Tier 2] Backend EC2** (Private Subnet 10.0.2.0/24) ➝ PostgreSQL port 5432 ➝ **[Tier 3] Database** (Private Subnet 10.0.3.0/24)
 
 ## Infrastructure (Terraform)
 
