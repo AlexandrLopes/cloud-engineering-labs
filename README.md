@@ -17,7 +17,7 @@ Implementing **Shift-Left Security** to detect vulnerabilities before deployment
 
 ---
 
-## Platform Engineering & Developer Enablement (New)
+## Platform Engineering & Developer Enablement
 Building internal developer platforms to reduce friction and accelerate delivery.
 
 | Project | Problem Solved | Tech Stack |
@@ -51,6 +51,7 @@ Provisioning modern, versioned, and immutable infrastructure.
 
 | Project | What it builds? | Technical Highlights |
 | :--- | :--- | :--- |
+| [**AWS 3-Tier Infrastructure**](./infrastructure/aws-3tier-infrastructure) | Production-style 3-tier architecture with **Bastion Host**, **Backend EC2**, **PostgreSQL**, and **automated S3 backup**. Fully provisioned with Terraform and configured via Linux CLI. | `Terraform`, `EC2`, `PostgreSQL`, `Bash`, `IAM Role`, `S3` |
 | [**AWS Production Environment**](./infrastructure/terraform-aws) | A secure infrastructure stack with **VPC**, **EC2**, and **S3**. | **Hardening:** `IMDSv2`, `EBS Encryption`, `Restricted Security Groups` |
 
 ---
