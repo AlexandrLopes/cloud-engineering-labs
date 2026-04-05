@@ -24,3 +24,13 @@ output "nat_gateway_id" {
   description = "ID do NAT Gateway"
   value       = aws_nat_gateway.main.id
 }
+
+output "bastion_public_ip" {
+  description = "Public IP of the Bastion Host"
+  value       = aws_instance.bastion.public_ip
+}
+
+output "backend_private_ip" {
+  description = "Private IP of the Backend EC2"
+  value       = aws_instance.backend.private_ip
+}
