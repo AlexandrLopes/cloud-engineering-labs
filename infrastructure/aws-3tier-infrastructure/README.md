@@ -1,18 +1,18 @@
 # AWS 3-Tier Infrastructure
 
 ## Overview
-A production-style 3-tier architecture on AWS, provisioned entirely with **Terraform** and configured manually via Linux CLI. Built to demonstrate real infrastructure skills: networking, security, database administration, and automated backup with Bash scripting.
+A production-style 3-tier architecture on AWS, provisioned entirely with **Terraform** and configured manually via Linux CLI. Built to demonstrate real infrastructure skills: networking, security, database administration, automated backup with Bash scripting, and full-stack observability with Prometheus and Grafana.
 
 ## Architecture
 
-**Internet** ➝ **[Tier 1] Bastion Host** (Public Subnet 10.0.1.0/24) ➝ SSH Agent Forwarding ➝ **[Tier 2] Backend EC2** (Private Subnet 10.0.2.0/24) ➝ PostgreSQL port 5432 ➝ **[Tier 3] Database** (Private Subnet 10.0.3.0/24)
+**Internet** -> **[Tier 1] Bastion Host** (Public Subnet 10.0.1.0/24) -> SSH Agent Forwarding -> **[Tier 2] Backend EC2** (Private Subnet 10.0.2.0/24) -> PostgreSQL port 5432 -> **[Tier 3] Database** (Private Subnet 10.0.3.0/24)
 
 ## Infrastructure (Terraform)
 
 | Resource | Description |
 |----------|-------------|
 | VPC | Isolated network (10.0.0.0/16) |
-| Public Subnet | Bastion Host |
+| Public Subnet | Bastion Host + Monitoring Stack |
 | Private App Subnet | Backend EC2 |
 | Private DB Subnet | Reserved for database tier |
 | Internet Gateway | Public internet access |
@@ -30,6 +30,7 @@ A production-style 3-tier architecture on AWS, provisioned entirely with **Terra
 
 ## Linux & Database Setup
 PostgreSQL 15 installed and configured manually on the Backend EC2 via CLI:
+
 ```bash
 # Install and initialize PostgreSQL
 sudo dnf install postgresql15-server -y
@@ -43,8 +44,27 @@ sudo -u postgres psql -c "GRANT ALL PRIVILEGES ON DATABASE appdb TO appuser;"
 sudo -u postgres psql -d appdb -c "CREATE TABLE users (id SERIAL PRIMARY KEY, name VARCHAR(100) NOT NULL, email VARCHAR(100) UNIQUE NOT NULL, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP);"
 ```
 
+## Observability Stack
+Prometheus and Grafana deployed via Docker Compose on the Bastion Host, collecting real-time metrics from the Backend EC2.
+
+| Component | Role | Port |
+|-----------|------|------|
+| Node Exporter | Exposes system metrics (CPU, memory, disk) from Backend EC2 | 9100 |
+| Prometheus | Scrapes and stores metrics every 15 seconds | 9090 |
+| Grafana | Visualizes metrics via Node Exporter Full dashboard (ID 1860) | 3000 |
+
+```bash
+# Start monitoring stack
+cd ~/monitoring
+docker-compose up -d
+
+# Check status
+docker-compose ps
+```
+
 ## Automated Backup
 Daily PostgreSQL backup to S3 via Bash script scheduled with cron:
+
 ```bash
 # Cron job — runs every day at 2AM UTC
 0 2 * * * /tmp/backup_postgres.sh
@@ -57,10 +77,11 @@ Backup flow:
 4. Script exits with code `1` if backup fails — preventing silent errors
 
 ## How to Deploy
+
 ```bash
 # Clone the repository
-git clone https://github.com/AlexandrLopes/aws-3tier-infrastructure
-cd aws-3tier-infrastructure
+git clone https://github.com/AlexandrLopes/cloud-engineering-labs
+cd cloud-engineering-labs/infrastructure/aws-3tier-infrastructure
 
 # Set your IP for Bastion SSH access (never commit this file)
 echo 'allowed_ssh_cidr = "YOUR_IP/32"' > terraform.tfvars
@@ -72,6 +93,7 @@ terraform apply
 ```
 
 ## Accessing the Infrastructure
+
 ```bash
 # Add SSH key to agent
 ssh-add ~/.ssh/three-tier-key
@@ -90,3 +112,5 @@ ssh ec2-user@BACKEND_PRIVATE_IP
 * **Database:** PostgreSQL 15
 * **Scripting:** Bash
 * **Scheduler:** cron (cronie)
+* **Monitoring:** Prometheus, Grafana, Node Exporter
+* **Containers:** Docker, Docker Compose
