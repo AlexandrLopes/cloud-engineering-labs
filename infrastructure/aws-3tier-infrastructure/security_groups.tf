@@ -10,6 +10,22 @@ resource "aws_security_group" "bastion" {
     cidr_blocks = [var.allowed_ssh_cidr]
   }
 
+  ingress {
+    from_port   = 3000
+    to_port     = 3000
+    protocol    = "tcp"
+    cidr_blocks = [var.allowed_ssh_cidr]
+    description = "Grafana"
+  }
+
+  ingress {
+    from_port   = 9090
+    to_port     = 9090
+    protocol    = "tcp"
+    cidr_blocks = [var.allowed_ssh_cidr]
+    description = "Prometheus"
+  }
+
   egress {
     from_port   = 0
     to_port     = 0
@@ -35,6 +51,14 @@ resource "aws_security_group" "backend" {
     to_port         = 8000
     protocol        = "tcp"
     security_groups = [aws_security_group.bastion.id]
+  }
+
+  ingress {
+    from_port       = 9100
+    to_port         = 9100
+    protocol        = "tcp"
+    security_groups = [aws_security_group.bastion.id]
+    description     = "Node Exporter - Prometheus scraping"
   }
 
   egress {
