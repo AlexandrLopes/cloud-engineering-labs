@@ -2,7 +2,7 @@
 [![DevSecOps Security Scan](https://github.com/AlexandrLopes/cloud-engineering-labs/actions/workflows/security-scan.yaml/badge.svg)](https://github.com/AlexandrLopes/cloud-engineering-labs/actions/workflows/security-scan.yaml)
 
 Welcome to my practical Cloud Engineering portfolio.
-This repository documents my technical journey in solving real-world infrastructure, security, and cost problems using **AWS**, **Python**, **Terraform**, **CloudFormation**, and **DevSecOps** practices.
+This repository documents my technical journey in solving real-world infrastructure, security, and cost problems using **AWS**, **Python**, **Terraform**, **Docker**, and **DevSecOps** practices.
 
 **Automation, Security, Infrastructure as Code, and Shift-Left Security.**
 
@@ -52,6 +52,7 @@ Provisioning modern, versioned, and immutable infrastructure.
 | Project | What it builds? | Technical Highlights |
 | :--- | :--- | :--- |
 | [**AWS 3-Tier Infrastructure**](./infrastructure/aws-3tier-infrastructure) | Production-style 3-tier architecture with **Bastion Host**, **Backend EC2**, **PostgreSQL**, and **automated S3 backup**. Fully provisioned with Terraform and configured via Linux CLI. | `Terraform`, `EC2`, `PostgreSQL`, `Bash`, `IAM Role`, `S3` |
+| [**Containerized 3-Tier Infrastructure**](./infrastructure/containerized-3tier) | Production-style 3-tier stack running entirely on local Docker containers. **Nginx** reverse proxy as single entry point, **PostgreSQL** for persistence, and full observability with **Prometheus** and **Grafana** — no cloud dependencies required. | `Terraform`, `Docker`, `Nginx`, `PostgreSQL`, `Prometheus`, `Grafana` |
 | [**AWS Production Environment**](./infrastructure/terraform-aws) | A secure infrastructure stack with **VPC**, **EC2**, and **S3**. | **Hardening:** `IMDSv2`, `EBS Encryption`, `Restricted Security Groups` |
 
 ---
@@ -90,7 +91,7 @@ Foundations of modern application deployment and isolation.
 ### About Me
 Cloud Engineer & Automation and Security Enthusiast.
 * **Certifications:** AWS Certified Cloud Practitioner (CLF-C02)
-* **Focus:** AWS, Python, Terraform, Security (SecOps), DevSecOps.
+* **Focus:** AWS, Python, Terraform, Docker, Security (SecOps), DevSecOps.
 * **Languages:** English (C2), Portuguese (Native), Spanish (intermediate).
 
 ---
