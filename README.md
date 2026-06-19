@@ -89,10 +89,10 @@ Foundations of modern application deployment and isolation.
 ---
 
 ### About Me
-Cloud Engineer & Automation and Security Enthusiast.
-* **Certifications:** AWS Certified Cloud Practitioner (CLF-C02)
-* **Focus:** AWS, Python, Terraform, Docker, Security (SecOps), DevSecOps.
-* **Languages:** English (C2), Portuguese (Native), Spanish (intermediate).
+Cloud & DevSecOps Engineer focused on automation, security and Infrastructure as Code.
+* **Certifications:** AWS Certified Cloud Practitioner (CLF-C02), Google Cloud Cybersecurity, Cisco Cybersecurity Defense Analyst.
+* **Focus:** AWS, Terraform, Docker, Python, SecOps, DevSecOps, CI/CD.
+* **Languages:** English (C2), Portuguese (Native), Spanish (B2).
 
 ---
 *This repository is maintained via local CI/CD, protected by Trivy scans, and versioned with Git.*
