@@ -1,11 +1,12 @@
 FROM ubuntu:22.04
 
-COPY script.sh /script.sh
+RUN useradd --create-home --shell /bin/bash appuser
 
-RUN chmod +x /script.sh
+COPY script.sh /home/appuser/script.sh
 
-CMD ["/script.sh"]
-
-RUN useradd --no-create-home --shell /bin/false appuser
+RUN chmod +x /home/appuser/script.sh \
+    && chown appuser:appuser /home/appuser/script.sh
 
 USER appuser
+
+CMD ["/home/appuser/script.sh"]
