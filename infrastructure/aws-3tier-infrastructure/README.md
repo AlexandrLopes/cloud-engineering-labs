@@ -1,11 +1,21 @@
 # AWS 3-Tier Infrastructure
 
-## Overview
-A production-style 3-tier architecture on AWS, provisioned entirely with **Terraform** and configured manually via Linux CLI. Built to demonstrate real infrastructure skills: networking, security, database administration, automated backup with Bash scripting, and full-stack observability with Prometheus and Grafana.
+**Production-style 3-tier AWS architecture — network isolation, database hardening, monitoring, and automated backup, end to end.**
+
+## TL;DR
+
+- **What it is:** A full 3-tier VPC (Bastion → Backend → Database) provisioned with Terraform, with every layer configured manually via Linux CLI — not just `terraform apply` and done.
+- **Why it's not just another Terraform repo:** each tier is isolated by Security Group chaining (Bastion → Backend → DB, no tier skips a hop), IMDSv2 is enforced, EBS is encrypted at rest, and there are zero hardcoded credentials — EC2 talks to S3 exclusively via IAM Role.
+- **Full-stack ops, not just IaC:** PostgreSQL 15 installed and hardened by hand, Prometheus + Grafana observability stack via Docker Compose, and a cron-scheduled Bash backup job to S3 with proper failure handling (non-zero exit on failed dump — no silent data loss).
+- **Stack:** Terraform · AWS (VPC, EC2, S3, IAM, NAT Gateway) · PostgreSQL 15 · Docker Compose · Prometheus/Grafana · Bash/cron.
+
+*Full architecture, security design, and deploy steps below.*
+
+---
 
 ## Architecture
 
-**Internet** -> **[Tier 1] Bastion Host** (Public Subnet 10.0.1.0/24) -> SSH Agent Forwarding -> **[Tier 2] Backend EC2** (Private Subnet 10.0.2.0/24) -> PostgreSQL port 5432 -> **[Tier 3] Database** (Private Subnet 10.0.3.0/24)
+**Internet** → **[Tier 1] Bastion Host** (Public Subnet `10.0.1.0/24`) → SSH Agent Forwarding → **[Tier 2] Backend EC2** (Private Subnet `10.0.2.0/24`) → PostgreSQL port 5432 → **[Tier 3] Database** (Private Subnet `10.0.3.0/24`)
 
 ## Infrastructure (Terraform)
 
@@ -22,13 +32,15 @@ A production-style 3-tier architecture on AWS, provisioned entirely with **Terra
 | Key Pair | SSH authentication |
 
 ## Security Design
-* **Bastion as single entry point:** Accepts SSH from a specific IP only
-* **Layered access control:** Backend accepts SSH exclusively from Bastion SG — Database accepts PostgreSQL (5432) exclusively from Backend SG
-* **No hardcoded credentials:** IAM Role used for AWS API access from EC2
-* **Encrypted storage:** EBS volumes encrypted at rest on all instances
-* **IMDSv2 enforced:** Instance Metadata Service v2 required on all instances
+
+* **Bastion as single entry point:** accepts SSH from a specific IP only.
+* **Layered access control:** Backend accepts SSH exclusively from the Bastion SG — Database accepts PostgreSQL (5432) exclusively from the Backend SG.
+* **No hardcoded credentials:** IAM Role used for all AWS API access from EC2.
+* **Encrypted storage:** EBS volumes encrypted at rest on all instances.
+* **IMDSv2 enforced:** Instance Metadata Service v2 required on all instances.
 
 ## Linux & Database Setup
+
 PostgreSQL 15 installed and configured manually on the Backend EC2 via CLI:
 
 ```bash
@@ -45,6 +57,7 @@ sudo -u postgres psql -d appdb -c "CREATE TABLE users (id SERIAL PRIMARY KEY, na
 ```
 
 ## Observability Stack
+
 Prometheus and Grafana deployed via Docker Compose on the Bastion Host, collecting real-time metrics from the Backend EC2.
 
 | Component | Role | Port |
@@ -63,6 +76,7 @@ docker-compose ps
 ```
 
 ## Automated Backup
+
 Daily PostgreSQL backup to S3 via Bash script scheduled with cron:
 
 ```bash
@@ -71,10 +85,10 @@ Daily PostgreSQL backup to S3 via Bash script scheduled with cron:
 ```
 
 Backup flow:
-1. `pg_dump` exports the full database to a `.sql` file
-2. AWS CLI uploads to S3 bucket via IAM Role (no credentials needed)
-3. Local file is removed after successful upload
-4. Script exits with code `1` if backup fails — preventing silent errors
+1. `pg_dump` exports the full database to a `.sql` file.
+2. AWS CLI uploads to S3 bucket via IAM Role (no credentials needed).
+3. Local file is removed after successful upload.
+4. Script exits with code `1` if backup fails — preventing silent errors.
 
 ## How to Deploy
 
@@ -106,6 +120,7 @@ ssh ec2-user@BACKEND_PRIVATE_IP
 ```
 
 ## Tech Stack
+
 * **IaC:** Terraform
 * **Cloud:** AWS (VPC, EC2, S3, IAM, NAT Gateway, Key Pair)
 * **OS:** Amazon Linux 2023
