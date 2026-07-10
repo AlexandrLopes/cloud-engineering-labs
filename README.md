@@ -8,6 +8,15 @@ This repository documents my technical journey in solving real-world infrastruct
 
 ---
 
+## Telephony Infrastructure (SIP / VoIP)
+Production-oriented AWS architecture for real-time telephony signaling ingress.
+
+| Project | Problem Solved | Tech Stack |
+| :--- | :--- | :--- |
+| [**SIP Ingress Infrastructure**](https://github.com/AlexandrLopes/sip-ingress-aws) | **Real-Time Telephony at Scale:** Layer 4 NLB (UDP) with source-IP preservation and provider allowlisting, stateless ECS Fargate scaling on active SIP sessions (not CPU), RDS Multi-AZ behind RDS Proxy, and private subnets reaching AWS services via VPC Endpoints (no NAT). Break-glass access segregated between Bastion (RDS) and ECS Exec (Fargate, no SSH). | `Terraform`, `NLB`, `ECS/Fargate`, `RDS Proxy`, `VPC Endpoints` |
+
+---
+
 ## DevSecOps & CI/CD Pipeline
 Implementing **Shift-Left Security** to detect vulnerabilities before deployment.
 
