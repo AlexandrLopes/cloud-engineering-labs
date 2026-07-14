@@ -50,28 +50,25 @@ Each order is processed independently, with no need for ordered replay across mu
 
 ---
 
-## 5. Processing: Lambda Batching, Not One-Invocation-Per-Message
+## 5. Processing: Lambda Batching, With Partial Failure Reporting
 
 Lambda is configured to pull batches of up to 10 messages from SQS per invocation (`BatchSize: 10`), not one message per invocation — amortizing cold/warm start overhead across multiple orders per invocation, which is what actually delivers the "high-volume" part of the design.
 
-**Known gap: no partial batch failure reporting.** `ReportBatchItemFailures` is **not** enabled on the event source mapping. This has a direct consequence, covered in the next section.
+The event source mapping enables `ReportBatchItemFailures`, and the handler returns the specific `messageId`s that failed instead of a blanket success. This means SQS retries **only the orders that actually failed**, not the entire batch — a batch of 10 where 1 write fails doesn't force 9 successful orders to be reprocessed.
 
 ---
 
-## 6. Known Gap: Silent Order Loss on Processing Failure
+## 6. Resilience: Dead-Letter Queue and Alerting
 
-This is the most important trade-off in the project, and it's a real limitation, not a hypothetical one.
+**The gap this closes:** the first version of this Lambda caught per-record exceptions, logged them, and moved on — but always returned success for the invocation. Under the SQS-Lambda integration, that meant every message in the batch was deleted from the queue regardless of whether the individual `put_item` call actually succeeded. A DynamoDB throttle or write error meant a silently lost order: no retry, no record anywhere except a CloudWatch log line easy to miss.
 
-**What happens today:** the Lambda handler wraps each record's processing in a `try/except` that **catches and logs** any error (e.g. a DynamoDB write failure) but does not re-raise it. The function always returns success for the invocation. Under the SQS-Lambda integration, that means **every message in the batch is deleted from the queue**, regardless of whether an individual record's `put_item` actually succeeded.
+**Fixed with three changes:**
 
-**Concrete failure mode:** if DynamoDB throttles or rejects a single write, that order's exception is printed to CloudWatch Logs and the loop moves on — the order is **not stored**, and the message is **still removed from the queue**, so there is no retry and no dead-letter capture. There is also no DLQ configured on the queue (no `RedrivePolicy`), so even a message that *did* get retried on a genuine invocation-level failure would eventually be dropped without a safety net.
+1. **`ReportBatchItemFailures` enabled** on the event source mapping (Section 5) — only genuinely failed messages are returned to the queue instead of being deleted alongside successful ones.
+2. **A dead-letter queue** (`esim-orders-dlq`) is attached via `RedrivePolicy` with `maxReceiveCount: 3` — a message that fails 3 delivery attempts moves to the DLQ instead of retrying forever or being silently dropped. 14-day retention on the DLQ gives enough time to investigate before it expires.
+3. **A CloudWatch alarm** on the DLQ's `ApproximateNumberOfMessagesVisible` fires the moment a single message lands there, publishing to an SNS topic (`esim-dlq-alerts`) — so a failed order surfaces as an actual notification, not something someone has to go looking for in logs.
 
-**What this would need to be production-safe:**
-1. Enable `ReportBatchItemFailures` on the event source mapping, and have the handler return the specific failed message IDs instead of swallowing the exception.
-2. Configure a DLQ with a `RedrivePolicy` (`maxReceiveCount`) on the queue, so repeatedly-failing messages land somewhere visible instead of disappearing.
-3. Add a CloudWatch alarm on the DLQ's message count, so a failure actually gets noticed.
-
-None of this is implemented today. Stating it here rather than letting an interviewer find it first.
+**What's still not automated:** re-driving messages from the DLQ back into the main queue after the root cause is fixed is a manual operation today (`aws sqs` CLI or a redrive task in the console) — no automated reprocessing pipeline. Acceptable for the current scale; would be the next thing to build if failure volume grew.
 
 ---
 
@@ -87,9 +84,9 @@ Unlike the other Terraform-based projects in this portfolio, this one is provisi
 
 **SQS vs Kinesis:** simpler model for a single-consumer, non-replay pipeline; no replay window or native fan-out. Queue is encrypted with a customer-managed KMS key, a direct response to a Trivy security finding.
 
-**Batch processing:** amortizes Lambda invocation overhead at scale (`BatchSize: 10`); but without partial-failure reporting, this widens the blast radius of the gap below.
+**Batch processing + partial failure reporting:** amortizes Lambda invocation overhead at scale (`BatchSize: 10`) while isolating retries to only the messages that actually failed, not the whole batch.
 
-**Silent order loss (the real gap):** a per-record exception is caught and logged, not re-raised — the message is deleted from the queue regardless, and there's no DLQ to catch it. A DynamoDB throttle or write error today means a quietly lost order, not a retried one. This is the single most important thing to be ready to discuss about this project.
+**DLQ + alerting:** a message that fails 3 attempts moves to a dead-letter queue instead of disappearing, and a CloudWatch alarm surfaces it via SNS. Redriving from the DLQ back to the main queue after a fix is still a manual step — no automated reprocessing pipeline yet.
 
 **Simulated eSIM generation:** the architecture (queueing, decoupling, storage) is real and load-bearing; the cryptographic provisioning step is not implemented and is explicitly out of scope, not hidden.
 
