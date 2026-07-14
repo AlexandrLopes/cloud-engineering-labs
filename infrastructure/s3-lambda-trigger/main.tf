@@ -8,7 +8,7 @@ resource "random_id" "bucket_suffix" {
 
 variable "alert_email" {
   description = "Email to recieve alerts"
-  default     = "alexandre.w.d.lopes@gmail.com"
+  default     = "changeme@example.com"
 }
 
 resource "aws_s3_bucket" "incoming_bucket" {
