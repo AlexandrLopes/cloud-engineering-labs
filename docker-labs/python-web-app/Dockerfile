@@ -8,14 +8,15 @@ RUN groupadd -r appuser && useradd -r -g appuser appuser
 
 COPY . /app
 
-RUN pip install --no-cache-dir -r requirements.txt
 RUN pip install --no-cache-dir --upgrade pip setuptools wheel && \
     pip install --no-cache-dir -r requirements.txt
 
 EXPOSE 5000
 
-ENV NAME World
-
 USER appuser
 
-CMD ["python", "app.py"]
+# Flask's own app.run() is a development server — not meant to serve real
+# traffic. gunicorn is the actual WSGI server; app.py's `if __name__ ==
+# "__main__"` guard means gunicorn importing `app:app` never triggers the
+# dev server at all.
+CMD ["gunicorn", "--bind", "0.0.0.0:5000", "app:app"]
