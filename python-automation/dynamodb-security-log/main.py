@@ -1,48 +1,49 @@
-import boto3
+import argparse
 import time
+import uuid
+
+import boto3
 from botocore.exceptions import ClientError
 
 TABLE_NAME = "SecurityAlerts"
 REGION = "us-east-1"
 
+
 def create_table_if_not_exists(dynamodb):
-    
     try:
         table = dynamodb.create_table(
             TableName=TABLE_NAME,
             KeySchema=[
-                {'AttributeName': 'alert_id', 'KeyType': 'HASH'},  # Partition Key
-                {'AttributeName': 'timestamp', 'KeyType': 'RANGE'} # Sort Key
+                {'AttributeName': 'alert_id', 'KeyType': 'HASH'},
+                {'AttributeName': 'timestamp', 'KeyType': 'RANGE'}
             ],
             AttributeDefinitions=[
-                {'AttributeName': 'alert_id', 'AttributeType': 'S'}, 
+                {'AttributeName': 'alert_id', 'AttributeType': 'S'},
                 {'AttributeName': 'timestamp', 'AttributeType': 'S'}
             ],
-            ProvisionedThroughput={
-                'ReadCapacityUnits': 5,
-                'WriteCapacityUnits': 5
-            }
+            BillingMode='PAY_PER_REQUEST',
+            PointInTimeRecoverySpecification={'PointInTimeRecoveryEnabled': True},
         )
-        print(f" Creating table {TABLE_NAME}... (This might take 10 seconds)")
-        table.wait_until_exists() # The script will remain here until AWS finishes creating it.
-        print(f" Table {TABLE_NAME} created successfully!")
+        print(f"Creating table {TABLE_NAME}...")
+        table.wait_until_exists()
+        print(f"Table {TABLE_NAME} created successfully.")
         return table
     except ClientError as e:
         if e.response['Error']['Code'] == 'ResourceInUseException':
-            print(f"  Table {TABLE_NAME} already exists. Skipping creation.")
+            print(f"Table {TABLE_NAME} already exists. Skipping creation.")
             return dynamodb.Table(TABLE_NAME)
         else:
-            print(f" Error creating table: {e}")
+            print(f"Error creating table: {e}")
             raise
 
-def log_alert(table, alert_id, severity, message):
-    
-    #Log security
-    
+
+def log_alert(table, severity, message, alert_id=None):
+    """Logs one security alert. Callable directly by other automation in this
+    portfolio (ec2-open-ports, ec2-auto-remediation, s3_security_scanner), not
+    just from this script's own CLI."""
+    alert_id = alert_id or str(uuid.uuid4())
     timestamp = str(time.time())
-    
-    print(f" Logging alert: {alert_id}...")
-    
+
     response = table.put_item(
         Item={
             'alert_id': alert_id,
@@ -52,22 +53,25 @@ def log_alert(table, alert_id, severity, message):
             'status': 'OPEN'
         }
     )
-    
+
     if response['ResponseMetadata']['HTTPStatusCode'] == 200:
-        print("Alert logged successfully!")
+        print(f"Alert logged: [{severity}] {message}")
     else:
-        print(" Failed to log alert.")
+        print(f"Failed to log alert: {message}")
+
+    return alert_id
+
 
 def main():
-    # Connects to DynamoDB
+    parser = argparse.ArgumentParser(description="Log a security alert to the central DynamoDB table.")
+    parser.add_argument("--severity", choices=["LOW", "MEDIUM", "HIGH", "CRITICAL"], required=True)
+    parser.add_argument("--message", required=True, help="Description of the alert")
+    args = parser.parse_args()
+
     dynamodb = boto3.resource('dynamodb', region_name=REGION)
-    
-    # 1. Checks the table
     table = create_table_if_not_exists(dynamodb)
-    
-    # 2. Entering false data for testing purposes
-    log_alert(table, "ALERT-001", "HIGH", "Port 22 Open to World (0.0.0.0/0)")
-    log_alert(table, "ALERT-002", "MEDIUM", "S3 Bucket Publicly Accessible")
+    log_alert(table, args.severity, args.message)
+
 
 if __name__ == "__main__":
     main()
