@@ -1,64 +1,101 @@
-# AWS S3 Security Scanner
+import time
+import uuid
 
-**Cloud Security Posture Management (CSPM) check for S3 — real API calls against real buckets, flagging both missing encryption and public exposure.**
+import boto3
+from botocore.exceptions import ClientError
 
-## 1. Context and Objective
+ALERTS_TABLE_NAME = "SecurityAlerts"
+ALERTS_REGION = "us-east-1"
 
-Two of the most critical S3 misconfigurations are missing encryption at rest and unintended public exposure — and the combination of both on the same bucket is the worst case, not two separate medium risks. This scans every bucket in an account and flags each condition independently, with the combination called out as critical.
 
----
+def log_alert(severity, message):
+    """Writes a finding to the shared SecurityAlerts table (see
+    dynamodb-security-log in this portfolio). The table is provisioned by
+    that project, not created here — if it doesn't exist yet, this logs a
+    warning and the audit continues normally."""
+    try:
+        table = boto3.resource('dynamodb', region_name=ALERTS_REGION).Table(ALERTS_TABLE_NAME)
+        table.put_item(Item={
+            'alert_id': str(uuid.uuid4()),
+            'timestamp': str(time.time()),
+            'severity': severity,
+            'message': message,
+            'status': 'OPEN',
+            'source': 's3_security_scanner',
+        })
+    except ClientError as e:
+        print(f"  (Could not write to SecurityAlerts table: {e.response['Error']['Code']})")
 
-## 2. The Gap This Closes: Simulated Data, Not a Real Scanner
 
-**What the earlier version actually did:** operated entirely on a hardcoded Python list mimicking an AWS API response — it never called AWS. `requirements.txt` listed `boto3` as a dependency the code never imported, and the documented run command (`python s3_security_scanner.py`) didn't match the actual file (`main.py`).
+def audit_bucket(s3_client, bucket_name):
+    """Checks a single bucket for missing encryption and public exposure."""
+    result = {"name": bucket_name, "encrypted": False, "public": None, "error": None}
 
-**Fixed:** the script now calls `list_buckets`, `get_bucket_encryption`, and `get_public_access_block` directly against a real AWS account. `requirements.txt` matches what's actually imported, and the run instructions below match the actual filename.
+    # Encryption check
+    try:
+        s3_client.get_bucket_encryption(Bucket=bucket_name)
+        result["encrypted"] = True
+    except ClientError as e:
+        if e.response["Error"]["Code"] == "ServerSideEncryptionConfigurationNotFoundError":
+            result["encrypted"] = False
+        else:
+            result["error"] = str(e)
+            return result
 
----
+    # Public access check
+    try:
+        pab = s3_client.get_public_access_block(Bucket=bucket_name)["PublicAccessBlockConfiguration"]
+        fully_blocked = all([
+            pab.get("BlockPublicAcls", False),
+            pab.get("BlockPublicPolicy", False),
+            pab.get("IgnorePublicAcls", False),
+            pab.get("RestrictPublicBuckets", False),
+        ])
+        result["public"] = not fully_blocked
+    except ClientError as e:
+        if e.response["Error"]["Code"] == "NoSuchPublicAccessBlockConfiguration":
+            result["public"] = True
+        else:
+            result["error"] = str(e)
 
-## 3. The Second Gap: Public Exposure Was Collected, Never Evaluated
+    return result
 
-**What the earlier version actually did:** the mocked dataset included a `Public` field per bucket, but `audit_bucket()` only ever checked `Encryption` — the public-exposure data was present in the input and completely ignored in the logic. A bucket that was both public and unencrypted (the worst-case combination, and present in the original mock data) was reported the same as any other unencrypted bucket, with no distinction.
 
-**Fixed:** `get_public_access_block` is checked per bucket. A bucket with no Public Access Block configuration at all is treated as a potential exposure (not skipped) — the absence of a blocking configuration means nothing is actively preventing public access, which is the correct default assumption for a security check, not an optimistic one.
+def generate_report():
+    s3 = boto3.client("s3")
+    print("--- STARTING S3 SECURITY AUDIT ---\n")
 
----
+    buckets = s3.list_buckets()["Buckets"]
+    vulnerable_count = 0
 
-## 4. Severity Logic
+    for bucket in buckets:
+        name = bucket["Name"]
+        audit = audit_bucket(s3, name)
 
-Each bucket lands in one of four states, evaluated independently rather than collapsed into a single pass/fail:
+        if audit["error"]:
+            print(f"[ERROR] Could not fully audit '{name}': {audit['error']}")
+            continue
 
-| Encrypted | Public | Result |
-|---|---|---|
-| No | Yes | `CRITICAL` — both conditions at once |
-| No | No | `ALERT` — missing encryption |
-| Yes | Yes | `ALERT` — exposed despite encryption |
-| Yes | No | `OK` |
+        is_public = audit["public"]
+        is_encrypted = audit["encrypted"]
 
----
+        if is_public and not is_encrypted:
+            print(f"[CRITICAL] '{name}' is PUBLIC and NOT ENCRYPTED!")
+            vulnerable_count += 1
+            log_alert("CRITICAL", f"Bucket '{name}' is public and not encrypted")
+        elif not is_encrypted:
+            print(f"[ALERT] '{name}' is NOT ENCRYPTED.")
+            vulnerable_count += 1
+            log_alert("HIGH", f"Bucket '{name}' is not encrypted")
+        elif is_public:
+            print(f"[ALERT] '{name}' is PUBLIC (encrypted, but still exposed).")
+            vulnerable_count += 1
+            log_alert("MEDIUM", f"Bucket '{name}' is public despite encryption")
+        else:
+            print(f"[OK] '{name}' is encrypted and not public.")
 
-## 5. Risks and Trade-offs (Summary)
+    print(f"\n--- SUMMARY: {vulnerable_count} vulnerable buckets found (out of {len(buckets)}). ---")
 
-**Bucket-level only, not object-level ACLs:** `get_public_access_block` reflects the bucket's own block configuration, not individual object ACLs that could still expose specific objects even under a compliant bucket-level setting — a full audit would need `get_bucket_acl` per object, not implemented here.
 
-**No cross-account bucket policy analysis:** a bucket could be "not public" by AWS's public-access definition but still be shared broadly via a permissive bucket policy granting access to other accounts — this scanner doesn't parse bucket policies, only the Block Public Access configuration.
-
-**Read-only, no remediation:** this reports; it doesn't enable encryption or apply a Block Public Access configuration automatically. Consistent with `ec2-open-ports` and `iam-security-auditor` in this same portfolio — all three are audit tools, not auto-remediation (that pattern lives in `ec2-auto-remediation`).
-
-**Required permissions:** `s3:ListAllMyBuckets`, `s3:GetEncryptionConfiguration`, `s3:GetBucketPublicAccessBlock` — read-only, no write access needed to run this audit.
-
----
-
-## How to Run
-
-```bash
-pip install -r requirements.txt
-aws configure
-python main.py
-```
-
-## Tech Stack
-
-* **Language:** Python 3
-* **SDK:** AWS Boto3
-* **APIs used:** `s3:ListBuckets`, `s3:GetBucketEncryption`, `s3:GetPublicAccessBlock`
+if __name__ == "__main__":
+    generate_report()
