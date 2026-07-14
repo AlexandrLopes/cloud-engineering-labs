@@ -47,13 +47,6 @@ resource "aws_security_group" "backend" {
   }
 
   ingress {
-    from_port       = 8000
-    to_port         = 8000
-    protocol        = "tcp"
-    security_groups = [aws_security_group.bastion.id]
-  }
-
-  ingress {
     from_port       = 9100
     to_port         = 9100
     protocol        = "tcp"
@@ -69,22 +62,6 @@ resource "aws_security_group" "backend" {
   }
 }
 
-resource "aws_security_group" "databank" {
-  name        = "postgresql-sg"
-  description = "Allow PostgreSQL from backend only"
-  vpc_id      = aws_vpc.main.id
-
-  ingress {
-    from_port       = 5432
-    to_port         = 5432
-    protocol        = "tcp"
-    security_groups = [aws_security_group.backend.id]
-  }
-
-  egress {
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-}
+# aws_security_group.databank ("postgresql-sg") removed — it was never
+# attached to any instance. PostgreSQL runs on the backend EC2 itself, so
+# there was no resource for this security group to actually protect.
