@@ -1,9 +1,26 @@
 AWSTemplateFormatVersion: "2010-09-09"
-Description: "DevEx Enablement: Automated CI/CD Pipeline using AWS Native Services (CodeCommit, CodeBuild, CodePipeline)."
+Description: "DevEx Enablement: Automated CI/CD Pipeline using AWS Native Services (CodeCommit, CodeBuild, CodePipeline, S3 Deploy)."
 
 Resources:
   # 1. Secure S3 Bucket for Pipeline Artifacts (Trivy Compliant: Encrypted, Versioned, No Public Access)
   PipelineArtifactBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      VersioningConfiguration:
+        Status: Enabled
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+
+  # 1b. Deploy target bucket — where BuildOutput actually lands. This is what
+  #     turns "Source -> Build" into an actual CI/CD pipeline.
+  DeploymentBucket:
     Type: AWS::S3::Bucket
     Properties:
       VersioningConfiguration:
@@ -101,6 +118,11 @@ Resources:
                   - !Sub "${PipelineArtifactBucket.Arn}/*"
               - Effect: Allow
                 Action:
+                  - s3:PutObject
+                Resource:
+                  - !Sub "${DeploymentBucket.Arn}/*"
+              - Effect: Allow
+                Action:
                   - codecommit:GetBranch
                   - codecommit:GetCommit
                   - codecommit:UploadArchive
@@ -113,7 +135,7 @@ Resources:
                   - codebuild:StartBuild
                 Resource: !GetAtt AppBuildProject.Arn
 
-  # 6. The Pipeline Itself (Orchestrator)
+  # 6. The Pipeline Itself (Orchestrator) — now Source -> Build -> Deploy
   AppPipeline:
     Type: AWS::CodePipeline::Pipeline
     Properties:
@@ -150,3 +172,16 @@ Resources:
                 - Name: BuildOutput
               Configuration:
                 ProjectName: !Ref AppBuildProject
+        - Name: Deploy
+          Actions:
+            - Name: DeployAction
+              ActionTypeId:
+                Category: Deploy
+                Owner: AWS
+                Version: "1"
+                Provider: S3
+              InputArtifacts:
+                - Name: BuildOutput
+              Configuration:
+                BucketName: !Ref DeploymentBucket
+                Extract: "true"
