@@ -43,6 +43,10 @@ For every inbound rule on every Security Group:
 
 ---
 
+## 6. Shared Alert Logging
+
+Every finding is also written to the `SecurityAlerts` DynamoDB table (see `dynamodb-security-log` in this portfolio) via a local `log_alert()` call. If that table doesn't exist yet, the write fails silently with a warning printed — the audit's console output is unaffected either way.
+
 ## How to Run
 
 ```bash
