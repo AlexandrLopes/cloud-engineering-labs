@@ -18,7 +18,16 @@ Resources:
             Action: kms:*
             Resource: "*"
 
-  # 2. SQS Queue (Encrypted with Customer Managed Key)
+  # 2. Dead-Letter Queue (catches orders that fail repeatedly)
+  EsimOrdersDLQ:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: esim-orders-dlq
+      MessageRetentionPeriod: 1209600  # 14 days — enough time to investigate before it's gone
+      KmsMasterKeyId: !GetAtt EsimKmsKey.Arn
+      KmsDataKeyReusePeriodSeconds: 300
+
+  # 3. SQS Queue (Encrypted with Customer Managed Key, redrives to DLQ after 3 failed attempts)
   EsimOrdersQueue:
     Type: AWS::SQS::Queue
     Properties:
@@ -26,8 +35,11 @@ Resources:
       VisibilityTimeout: 30
       KmsMasterKeyId: !GetAtt EsimKmsKey.Arn
       KmsDataKeyReusePeriodSeconds: 300
+      RedrivePolicy:
+        deadLetterTargetArn: !GetAtt EsimOrdersDLQ.Arn
+        maxReceiveCount: 3
 
-  # 3. DynamoDB Table (High-performance NoSQL database)
+  # 4. DynamoDB Table (High-performance NoSQL database)
   EsimProfilesTable:
     Type: AWS::DynamoDB::Table
     Properties:
@@ -40,7 +52,32 @@ Resources:
         - AttributeName: order_id
           KeyType: HASH
 
-  # 4. IAM Role (Strict Least Privilege + KMS Decrypt permissions)
+  # 5. SNS Topic + Alarm — someone actually gets notified when the DLQ isn't empty
+  DlqAlertTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      TopicName: esim-dlq-alerts
+
+  DlqDepthAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: esim-orders-dlq-not-empty
+      AlarmDescription: "Fires when a message lands in the eSIM orders DLQ — an order failed processing after 3 retries and needs investigation."
+      Namespace: AWS/SQS
+      MetricName: ApproximateNumberOfMessagesVisible
+      Dimensions:
+        - Name: QueueName
+          Value: !GetAtt EsimOrdersDLQ.QueueName
+      Statistic: Sum
+      Period: 300
+      EvaluationPeriods: 1
+      Threshold: 0
+      ComparisonOperator: GreaterThanThreshold
+      AlarmActions:
+        - !Ref DlqAlertTopic
+      TreatMissingData: notBreaching
+
+  # 6. IAM Role (Strict Least Privilege + KMS Decrypt permissions)
   EsimProcessorRole:
     Type: AWS::IAM::Role
     Properties:
@@ -78,7 +115,8 @@ Resources:
                   - logs:PutLogEvents
                 Resource: arn:aws:logs:*:*:*
 
-  # 5. AWS Lambda (Pulls orders from the SQS queue and generates the eSIM profile)
+  # 7. AWS Lambda (Pulls orders from the SQS queue, generates the eSIM profile,
+  #    and now reports per-message failures instead of swallowing them)
   EsimProcessorLambda:
     Type: AWS::Lambda::Function
     Properties:
@@ -102,16 +140,21 @@ Resources:
           table = dynamodb.Table(table_name)
 
           def lambda_handler(event, context):
+              # Track which messages actually failed so SQS only retries those —
+              # not the whole batch, and not silently drops them either.
+              batch_item_failures = []
+
               for record in event['Records']:
+                  message_id = record['messageId']
                   try:
                       payload = json.loads(record['body'])
                       order_id = payload.get('order_id', str(uuid.uuid4()))
                       customer_id = payload.get('customer_id', 'UNKNOWN')
-                      
+
                       print(f"Processing eSIM order for customer: {customer_id}")
-                      
+
                       simulated_iccid = f"8901410321111{str(uuid.uuid4().int)[:6]}"
-                      
+
                       table.put_item(
                           Item={
                               'order_id': order_id,
@@ -121,13 +164,17 @@ Resources:
                           }
                       )
                       print(f"Successfully generated and stored eSIM ICCID: {simulated_iccid}")
-                      
-                  except Exception as e:
-                      print(f"Error processing order: {str(e)}")
-              
-              return {"status": 200, "message": "Batch processed successfully"}
 
-  # 6. Event Source Mapping (Connects the SQS Queue to the Lambda Function)
+                  except Exception as e:
+                      print(f"Error processing order (messageId={message_id}): {str(e)}")
+                      batch_item_failures.append({"itemIdentifier": message_id})
+
+              # Only the failed message IDs go back to SQS for retry / eventual DLQ redrive.
+              # Successfully processed messages in the same batch are still deleted normally.
+              return {"batchItemFailures": batch_item_failures}
+
+  # 8. Event Source Mapping (Connects the SQS Queue to the Lambda Function,
+  #    with partial batch failure reporting enabled)
   LambdaSqsTrigger:
     Type: AWS::Lambda::EventSourceMapping
     Properties:
@@ -135,3 +182,5 @@ Resources:
       FunctionName: !Ref EsimProcessorLambda
       BatchSize: 10
       Enabled: true
+      FunctionResponseTypes:
+        - ReportBatchItemFailures
