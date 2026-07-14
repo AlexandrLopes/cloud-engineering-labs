@@ -1,107 +1,87 @@
 # Cloud Engineering Labs
-[![DevSecOps Security Scan](https://github.com/AlexandrLopes/cloud-engineering-labs/actions/workflows/security-scan.yaml/badge.svg)](https://github.com/AlexandrLopes/cloud-engineering-labs/actions/workflows/security-scan.yaml)
+[![Automated Security Scan](https://github.com/AlexandrLopes/cloud-engineering-labs/actions/workflows/security-scan.yaml/badge.svg)](https://github.com/AlexandrLopes/cloud-engineering-labs/actions/workflows/security-scan.yaml)
 
-Welcome to my practical Cloud Engineering portfolio.
-This repository documents my technical journey in solving real-world infrastructure, security, and cost problems using **AWS**, **Python**, **Terraform**, **Docker**, and **DevSecOps** practices.
+Hands-on Cloud/DevOps portfolio — AWS infrastructure, Terraform, CloudFormation, Docker, and Python automation, solving real infrastructure and cost problems end to end.
 
-**Automation, Security, Infrastructure as Code, and Shift-Left Security.**
-
----
-
-## Telephony Infrastructure (SIP / VoIP)
-Production-oriented AWS architecture for real-time telephony signaling ingress.
-
-| Project | Problem Solved | Tech Stack |
-| :--- | :--- | :--- |
-| [**SIP Ingress Infrastructure**](https://github.com/AlexandrLopes/sip-ingress-aws) | **Real-Time Telephony at Scale:** Layer 4 NLB (UDP) with source-IP preservation and provider allowlisting, stateless ECS Fargate scaling on active SIP sessions (not CPU), RDS Multi-AZ behind RDS Proxy, and private subnets reaching AWS services via VPC Endpoints (no NAT). Break-glass access segregated between Bastion (RDS) and ECS Exec (Fargate, no SSH). | `Terraform`, `NLB`, `ECS/Fargate`, `RDS Proxy`, `VPC Endpoints` |
+Every project here follows the same standard: a decision documented alongside the alternative it wasn't, and the trade-off stated directly rather than implied. Every CI/CD, IaC, and automation project also runs through automated scanning (Trivy) as part of the build.
 
 ---
 
-## DevSecOps & CI/CD Pipeline
-Implementing **Shift-Left Security** to detect vulnerabilities before deployment.
+## Flagship: Telephony Infrastructure (SIP / VoIP)
 
-| Project | Problem Solved | Tech Stack |
+Production-oriented AWS architecture for real-time telephony signaling ingress — delivered as a technical assessment.
+
+| Project | What it solves | Tech Stack |
 | :--- | :--- | :--- |
-| [**Automated Security Pipeline**](.github/workflows/security-scan.yaml) | **Continuous Security:** A GitHub Actions workflow that automatically scans IaC (Terraform) for misconfigurations and Docker images for CVEs using **Trivy**. Blocks the build if Critical vulnerabilities are found. | `GitHub Actions`, `Trivy`, `CI/CD` |
-
----
-
-## Platform Engineering & Developer Enablement
-Building internal developer platforms to reduce friction and accelerate delivery.
-
-| Project | Problem Solved | Tech Stack |
-| :--- | :--- | :--- |
-| [**Automated CI/CD Pipeline Builder**](./infrastructure/cloudformation/automated-cicd-pipeline) | **Developer Experience (DevEx):** A CloudFormation template that instantly provisions a secure Git repository (**CodeCommit**), a build server (**CodeBuild**), and an automated orchestrator (**CodePipeline**). Developers just need to push code, eliminating infrastructure overhead. | `CloudFormation`, `CodePipeline`, `CodeBuild`, `IAM` |
-
----
-
-## Cloud-Native Infrastructure (CloudFormation)
-Event-driven, serverless architectures provisioned entirely with native AWS IaC.
-
-| Project | Problem Solved | Tech Stack |
-| :--- | :--- | :--- |
-| [**Serverless High-Volume eSIM Processor**](./infrastructure/cloudformation/serverless-esim-order-processor) | **Scalability & Resiliency:** A decoupled architecture using **SQS** to queue thousands of incoming eSIM orders, preventing database overload. **Lambda** processes the queue in batches and stores the active profiles in **DynamoDB**. | `CloudFormation`, `SQS`, `Lambda`, `DynamoDB` |
-| [**Serverless IAM Security Checker**](./infrastructure/cloudformation/cfn-iam-security-checker) | **Compliance Automation:** A CloudFormation template that provisions an EventBridge cron job, an SNS Topic, and a Python Lambda function to audit IAM users daily for missing MFA, enforcing CIS Benchmarks. | `CloudFormation`, `Lambda`, `EventBridge`, `SNS` |
-
----
-
-## Security Engineering & SOAR
-Advanced projects focused on **Automated Remediation** and **Active Defense**.
-
-| Project | Problem Solved | Tech Stack |
-| :--- | :--- | :--- |
-| [**Security Auto-Remediation Bot**](./security-labs/ec2-auto-remediation) | **SOAR / Active Defense:** A Serverless bot that detects high-risk Security Group changes (e.g., Port 22 open to 0.0.0.0/0) via **EventBridge** and **instantly revokes** the rule using **Lambda**. Enforces Zero Trust policies automatically. | `Terraform`, `Python`, `EventBridge`, `IAM` |
-| [**S3 Data Integrity Pipeline**](./infrastructure/s3-lambda-trigger) | **Data Security:** Event-driven pipeline that validates file integrity (Magic Bytes/Extensions), processes financial data, and creates audit logs in **DynamoDB**. Uses **IAM Least Privilege** and Server-Side Encryption. | `Terraform`, `Lambda`, `DynamoDB`, `S3 Events` |
+| [**SIP Ingress Infrastructure**](https://github.com/AlexandrLopes/sip-ingress-aws) | Layer 4 NLB (UDP) with source-IP preservation and provider allowlisting, stateless ECS Fargate scaling on active SIP sessions (not CPU), RDS Multi-AZ behind RDS Proxy, private subnets reaching AWS services via VPC Endpoints (no NAT). | `Terraform`, `NLB`, `ECS/Fargate`, `RDS Proxy`, `VPC Endpoints` |
 
 ---
 
 ## Infrastructure as Code (Terraform)
-Provisioning modern, versioned, and immutable infrastructure.
 
-| Project | What it builds? | Technical Highlights |
+Provisioning modern, versioned infrastructure — on AWS and locally via Docker.
+
+| Project | What it builds | Tech Stack |
 | :--- | :--- | :--- |
-| [**AWS 3-Tier Infrastructure**](./infrastructure/aws-3tier-infrastructure) | Production-style 3-tier architecture with **Bastion Host**, **Backend EC2**, **PostgreSQL**, and **automated S3 backup**. Fully provisioned with Terraform and configured via Linux CLI. | `Terraform`, `EC2`, `PostgreSQL`, `Bash`, `IAM Role`, `S3` |
-| [**Containerized 3-Tier Infrastructure**](./infrastructure/containerized-3tier) | Production-style 3-tier stack running entirely on local Docker containers. **Nginx** reverse proxy as single entry point, **PostgreSQL** for persistence, and full observability with **Prometheus** and **Grafana** — no cloud dependencies required. | `Terraform`, `Docker`, `Nginx`, `PostgreSQL`, `Prometheus`, `Grafana` |
-| [**AWS Production Environment**](./infrastructure/terraform-aws) | A secure infrastructure stack with **VPC**, **EC2**, and **S3**. | **Hardening:** `IMDSv2`, `EBS Encryption`, `Restricted Security Groups` |
+| [**AWS 3-Tier Infrastructure**](./infrastructure/aws-3tier-infrastructure) | Self-managed 3-tier stack (Bastion → Backend → PostgreSQL 15) with hand-hardened Linux, real observability (Prometheus/Grafana), and automated S3 backup. | `Terraform`, `EC2`, `PostgreSQL`, `Bash`, `Prometheus` |
+| [**Containerized 3-Tier Infrastructure**](./infrastructure/containerized-3tier) | The same 3-tier shape running entirely on local Docker via the Terraform Docker provider — Nginx as the sole entry point, no cloud dependency. | `Terraform`, `Docker`, `Nginx`, `PostgreSQL`, `Prometheus`, `Grafana` |
+| [**AWS Production Environment**](./infrastructure/terraform-aws) | Hardened EC2 web server (IMDSv2, encrypted EBS) behind a modular VPC — networking split into a reusable `modules/network` component. | `Terraform`, `AWS VPC`, `EC2`, `S3` |
+| [**Remote State Backend**](./infrastructure/remote-backend) | S3 + DynamoDB backend for shared, locked Terraform state — the bootstrap project deployed before anything that references it. | `Terraform`, `S3`, `DynamoDB` |
 
 ---
 
-## Architecture & Best Practices Implemented
-Foundational infrastructure design focusing on scalability and team collaboration.
+## CI/CD & Platform Engineering
 
-| Component | Problem Solved | Tech Stack |
+Reducing the distance between `git push` and running infrastructure.
+
+| Project | What it solves | Tech Stack |
 | :--- | :--- | :--- |
-| [**Modular Networking**](./infrastructure/terraform-aws/modules/network) | **Modular Architecture:** Infrastructure is divided into reusable Terraform modules to keep the root code clean, maintainable, and scalable. | `Terraform`, `AWS VPC` |
-| [**Remote State Backend**](./infrastructure/remote-backend) | **State Management & Locking:** Terraform state (`.tfstate`) is securely stored in S3, with concurrency managed by DynamoDB to prevent split-brain issues. | `Terraform`, `S3`, `DynamoDB` |
+| [**Automated CI/CD Pipeline**](./infrastructure/cloudformation/automated-cicd-pipeline) | Self-service Source → Build → Deploy pipeline on AWS-native services, so a developer's only job is `git push`. | `CloudFormation`, `CodePipeline`, `CodeBuild`, `IAM` |
 
 ---
 
-## Python Automation (Boto3)
-Scripts focused on **SecOps** and **FinOps** interacting directly with the AWS SDK.
+## Serverless & Event-Driven
 
-| Project | Problem Solved | Tech Stack |
+Decoupled architectures where the queue or event bus is the shock absorber, not the database.
+
+| Project | What it solves | Tech Stack |
 | :--- | :--- | :--- |
-| [**S3 Cost Optimizer**](./python-automation/s3-cleanup-tool) | **FinOps:** Identifies and cleans up old/unused files in S3 Buckets based on age policies to reduce storage costs. | `boto3`, `datetime` |
-| [**EC2 Security Auditor**](./python-automation/ec2-open-ports) | **Reporting:** Proactively scans the network for risky open ports (22, 3389) exposed to the internet. | `boto3`, `json` |
-| [**IAM Security Auditor**](./python-automation/iam-security-auditor) | **Identity:** Audits IAM users to detect security gaps like missing MFA or unused credentials. | `boto3`, `csv` |
+| [**Serverless eSIM Order Processor**](./infrastructure/cloudformation/serverless-esim-order-processor) | SQS-buffered, Lambda-batched order processing with a dead-letter queue and CloudWatch alarm — failures are retried or surfaced, never silently dropped. | `CloudFormation`, `SQS`, `Lambda`, `DynamoDB` |
+| [**S3 Event Processor & Audit Log**](./infrastructure/s3-lambda-trigger) | Validates every uploaded file by extension and size before processing, with a complete audit trail — including for the files it blocks. | `Terraform`, `Lambda`, `DynamoDB`, `S3 Events` |
 
 ---
 
 ## Containerization
-Foundations of modern application deployment and isolation.
 
-| Project | Problem Solved | Tech Stack |
+Building and hardening container images, not just running `docker build`.
+
+| Project | What it demonstrates | Tech Stack |
 | :--- | :--- | :--- |
-| [**Hardened Python Web App**](./docker-labs/python-web-app) | **App Isolation & Security:** Containerizing a Flask application ensuring environment consistency. Includes OS Patching and runs as a Non-Root User to mitigate container breakout risks. | `Docker`, `Python`, `Flask`, `Linux Hardening` |
-| [**Secure Multi-stage Build**](./docker-labs/secure-multistage-build) | **Image Optimization & Attack Surface Reduction:** Implementing multi-stage builds to separate the build environment from the runtime. Reduces image size and eliminates system compilers from production, neutralizing secondary malware execution. | `Docker`, `Python`, `Multi-stage` |
+| [**Secure Multi-stage Build**](./docker-labs/secure-multistage-build) | Multi-stage Docker build that strips compilers and build tools from the production image entirely, running under gunicorn. | `Docker`, `Python`, `Multi-stage` |
+| [**Environment-Driven Web App**](./docker-labs/python-web-app) | Flask app with Docker Compose orchestration, configured entirely through environment variables — no rebuild needed per environment. | `Docker`, `Python`, `Flask` |
+
+---
+
+## Automation & Auditing (Python / Boto3)
+
+Scripts that answer a specific operational question against a live AWS account.
+
+| Project | What it checks | Tech Stack |
+| :--- | :--- | :--- |
+| [**Security Group Auditor**](./python-automation/ec2-open-ports) | Flags Security Group rules exposed to the internet — including all-traffic rules and IPv6 ranges. | `boto3` |
+| [**IAM User Auditor**](./python-automation/iam-security-auditor) | Three independent signals per user: MFA status, login inactivity, and access key age. | `boto3` |
+| [**S3 Security Scanner**](./python-automation/s3_security_scanner) | Flags buckets missing encryption or exposed via public access — and calls out buckets that are both. | `boto3` |
+| [**S3 Cleanup Tool**](./python-automation/s3-cleanup-tool) | Cost-optimization script for aging S3 objects — dry-run by default. | `boto3` |
+| [**Auto-Remediation Bot**](./security-labs/ec2-auto-remediation) | Event-driven (CloudTrail → EventBridge → Lambda) — the one automation here that acts, not just reports, reverting risky Security Group rules sub-second from creation. | `Terraform`, `Lambda`, `EventBridge` |
+| [**IAM MFA Checker**](./infrastructure/cloudformation/cfn-iam-security-checker) | Daily scheduled check for IAM users without MFA, with email alerting. | `CloudFormation`, `Lambda`, `EventBridge`, `SNS` |
 
 ---
 
 ### About Me
-Cloud & DevSecOps Engineer focused on automation, security and Infrastructure as Code.
-* **Certifications:** AWS Certified Cloud Practitioner (CLF-C02), Google Cloud Cybersecurity, Cisco Cybersecurity Defense Analyst.
-* **Focus:** AWS, Terraform, Docker, Python, SecOps, DevSecOps, CI/CD.
+Cloud & DevOps Engineer focused on infrastructure automation, Infrastructure as Code, and CI/CD.
+* **Certifications:** AWS Certified Cloud Practitioner (CLF-C02), Google Cloud Cybersecurity.
+* **Focus:** AWS, Terraform, Docker, Python, CI/CD, Observability.
 * **Languages:** English (C2), Portuguese (Native), Spanish (B2).
 
 ---
-*This repository is maintained via local CI/CD, protected by Trivy scans, and versioned with Git.*
+*Every project's README documents not just what was built, but what was rejected and why — versioned with Git, scanned with Trivy.*
