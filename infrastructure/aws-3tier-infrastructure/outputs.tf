@@ -15,11 +15,6 @@ output "private_app_subnet_id" {
   value       = aws_subnet.private_app.id
 }
 
-output "private_db_subnet_id" {
-  description = "ID da subnet privada do banco"
-  value       = aws_subnet.private_db.id
-}
-
 output "nat_gateway_id" {
   description = "ID do NAT Gateway"
   value       = aws_nat_gateway.main.id
@@ -33,4 +28,9 @@ output "bastion_public_ip" {
 output "backend_private_ip" {
   description = "Private IP of the Backend EC2"
   value       = aws_instance.backend.private_ip
+}
+
+output "backup_bucket_name" {
+  description = "Name of the S3 bucket used for PostgreSQL backups"
+  value       = aws_s3_bucket.backup.id
 }
