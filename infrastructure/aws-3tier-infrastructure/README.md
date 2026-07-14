@@ -19,12 +19,13 @@ Internet
   -> Internet Gateway
   -> [Tier 1] Bastion Host (Public Subnet 10.0.1.0/24) — SSH entry point + monitoring stack
        -> SSH Agent Forwarding
-  -> [Tier 2] Backend EC2 (Private Subnet 10.0.2.0/24) — application layer, PostgreSQL client
-       -> PostgreSQL :5432
-  -> [Tier 3] Database (Private Subnet 10.0.3.0/24) — PostgreSQL 15
+  -> [Tier 2/3] Backend EC2 (Private Subnet 10.0.2.0/24) — application layer AND PostgreSQL 15,
+       both on the same instance
 ```
 
-Outbound internet for the private subnets (package installs, S3 access, backup upload) goes through a **NAT Gateway**.
+**Two instances, not three — stated precisely.** This is a 2-instance deployment (Bastion + Backend), with PostgreSQL installed directly on the Backend instance rather than a dedicated third instance. An earlier version of this project also provisioned a separate `private_db` subnet and a `postgresql-sg` security group as if a third instance existed — neither was ever attached to anything. Removed rather than left as unused, unexplained infrastructure (see Section 6).
+
+Outbound internet for the private subnet (package installs, S3 access, backup upload) goes through a **NAT Gateway**.
 
 ---
 
@@ -64,19 +65,36 @@ Access is granted **by group, not by IP** — if the Backend EC2's IP changes (s
 |----------|-------------|
 | VPC | Isolated network (10.0.0.0/16) |
 | Public Subnet | Bastion Host + Monitoring Stack |
-| Private App Subnet | Backend EC2 |
-| Private DB Subnet | Database tier |
+| Private App Subnet | Backend EC2 (application + PostgreSQL) |
 | Internet Gateway | Public internet access |
-| NAT Gateway | Outbound internet for private subnets |
-| IAM Role | EC2 access to S3 without hardcoded credentials |
+| NAT Gateway | Outbound internet for private subnet |
+| IAM Role | EC2 access to the backup S3 bucket only, no static credentials |
 
 ---
 
 ## 6. Hardening
 
-- **No hardcoded credentials:** all AWS API access from EC2 (S3 upload for backups) goes through an **IAM Role**, never static keys.
+- **IAM Role, not static keys:** all AWS API access from EC2 (S3 upload for backups) goes through an **IAM Role**.
 - **EBS encrypted at rest** on every instance.
 - **IMDSv2 enforced** on every instance — mitigates SSRF-style metadata credential theft.
+
+### The gap this closes: the IAM role wasn't actually least-privilege
+
+**What the earlier version actually had:** the backend role's S3 policy granted `s3:CreateBucket`, `PutObject`, `GetObject`, and `ListBucket` on `Resource: "*"` — meaning the instance could read, write, and even create buckets **anywhere in the account**, not just the backup destination. On top of that, no S3 bucket was actually provisioned anywhere in this project's Terraform — the backup script's target bucket existed outside the IaC entirely, if it existed at all.
+
+**Fixed:** a real backup bucket is now provisioned (`s3.tf`, encrypted, versioned, public access blocked), and the IAM policy is scoped to exactly that bucket's ARN. `s3:CreateBucket` is gone — the instance never needs to create a bucket, only write into the one Terraform already made.
+
+### The second gap: no provider configuration existed
+
+**What the earlier version actually had:** no `provider.tf` at all. The project worked only because it silently inherited region and credentials from whatever was already configured in the local AWS CLI — and the `aws_region` variable in `variables.tf` was declared but never referenced by anything, an orphaned variable.
+
+**Fixed:** an explicit `provider.tf` now pins the AWS and random provider versions and wires `var.aws_region` into the actual `provider "aws"` block.
+
+### The third gap: a hardcoded local file path
+
+**What the earlier version actually had:** `key_pair.tf` referenced `file("/Users/alexandrewilliam/.ssh/three-tier-key.pub")` — an absolute path specific to one machine, committed to a public repository. This broke `terraform apply` for anyone (including the same person, on a different machine) without that exact path, and incidentally exposed a local macOS username in public source.
+
+**Fixed:** replaced with `var.ssh_public_key_path`, a required variable with no default — supplied via `terraform.tfvars` (gitignored) or `-var` at apply time.
 
 **Trade-off not yet closed:** the database password is currently set inline during setup (`CREATE USER ... WITH ENCRYPTED PASSWORD`). For a real production posture, this would move to **Secrets Manager**, fetched at boot — the same pattern used in `sip-ingress-aws`. Flagging this explicitly rather than pretending it's already solved.
 
@@ -128,7 +146,7 @@ Daily PostgreSQL backup to S3 via Bash script scheduled with cron:
 
 Backup flow:
 1. `pg_dump` exports the full database to a `.sql` file.
-2. AWS CLI uploads to an S3 bucket via IAM Role (no credentials needed).
+2. AWS CLI uploads to the dedicated backup S3 bucket via IAM Role, scoped to that bucket only (no static credentials, no broader access).
 3. Local file is removed after successful upload.
 4. Script exits with code `1` if the backup fails — no silent data loss.
 
@@ -141,6 +159,16 @@ Backup flow:
 **EC2 vs RDS:** manual visibility into every layer, at the cost of automated failover, patching, and point-in-time recovery. Right call for this project's purpose; RDS would be right call for real production with these requirements.
 
 **NAT Gateway vs VPC Endpoints:** simpler for this workload's outbound needs (no ECR pulls); larger network surface than an Endpoints-only design.
+
+**Overpermissive IAM role (fixed):** covered in Section 6 — was `Resource: "*"` with `CreateBucket`, now scoped to the one backup bucket with only the actions actually needed.
+
+**Missing provider configuration (fixed):** covered in Section 6 — no explicit `provider.tf` existed; the project ran only by inheriting local AWS CLI config.
+
+**Hardcoded personal file path (fixed):** covered in Section 6 — replaced with a required variable, no default.
+
+**Orphaned database tier (fixed):** an unused `private_db` subnet and `postgresql-sg` security group were removed — neither was ever attached to an instance, since PostgreSQL runs on the Backend EC2 itself (Section 2).
+
+**Unexplained open port (fixed):** the Backend security group had a port 8000 rule open from the Bastion with no corresponding service anywhere in the project. Removed rather than kept without a defensible reason.
 
 **Inline DB password vs Secrets Manager:** not yet closed — flagged as the clear next step, not hidden.
 
@@ -158,8 +186,12 @@ Backup flow:
 git clone https://github.com/AlexandrLopes/cloud-engineering-labs
 cd cloud-engineering-labs/infrastructure/aws-3tier-infrastructure
 
-# Set your IP for Bastion SSH access (never commit this file)
-echo 'allowed_ssh_cidr = "YOUR_IP/32"' > terraform.tfvars
+# Set your IP for Bastion SSH access and your local SSH public key path
+# (never commit this file)
+cat > terraform.tfvars << EOF
+allowed_ssh_cidr     = "YOUR_IP/32"
+ssh_public_key_path  = "/path/to/your/ssh/key.pub"
+EOF
 
 terraform init
 terraform plan
@@ -182,6 +214,7 @@ ssh ec2-user@BACKEND_PRIVATE_IP
 
 * **IaC:** Terraform
 * **Cloud:** AWS (VPC, EC2, S3, IAM, NAT Gateway, Key Pair)
+* **Providers:** `hashicorp/aws` ~> 5.0, `hashicorp/random` ~> 3.0
 * **OS:** Amazon Linux 2023
 * **Database:** PostgreSQL 15
 * **Scripting:** Bash
