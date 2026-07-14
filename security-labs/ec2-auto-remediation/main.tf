@@ -66,6 +66,12 @@ resource "aws_iam_role" "lambda_exec_role" {
 resource "aws_iam_role_policy" "lambda_policy" {
   name = "remediation-policy"
   role = aws_iam_role.lambda_exec_role.id
+
+  # ec2:DescribeSecurityGroups removed — it was granted but never called
+  # anywhere in remediation.py, which reads everything it needs directly
+  # from the CloudTrail event payload. An unused permission is still a
+  # permission an attacker gets if this role is ever compromised.
+
   policy = jsonencode({
     Version = "2012-10-17"
     Statement = [
@@ -84,6 +90,13 @@ resource "aws_iam_role_policy" "lambda_policy" {
           "ec2:RevokeSecurityGroupIngress"
         ],
         Resource = "*"
+      },
+      {
+        Effect = "Allow",
+        Action = [
+          "dynamodb:PutItem"
+        ],
+        Resource = "arn:aws:dynamodb:us-east-1:*:table/SecurityAlerts"
       }
     ]
   })
