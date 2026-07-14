@@ -12,7 +12,8 @@ resource "aws_lambda_function" "remediation_bot" {
 
   environment {
     variables = {
-      LOG_LEVEL = "INFO"
+      LOG_LEVEL           = "INFO"
+      ALLOWED_CIDR_RANGES = var.allowed_cidr_ranges
     }
   }
 }
@@ -65,7 +66,6 @@ resource "aws_iam_role" "lambda_exec_role" {
 resource "aws_iam_role_policy" "lambda_policy" {
   name = "remediation-policy"
   role = aws_iam_role.lambda_exec_role.id
-
   policy = jsonencode({
     Version = "2012-10-17"
     Statement = [
@@ -81,8 +81,7 @@ resource "aws_iam_role_policy" "lambda_policy" {
       {
         Effect = "Allow",
         Action = [
-          "ec2:RevokeSecurityGroupIngress", # can/can't delete the rule
-          "ec2:DescribeSecurityGroups"
+          "ec2:RevokeSecurityGroupIngress"
         ],
         Resource = "*"
       }
