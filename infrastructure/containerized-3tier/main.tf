@@ -65,6 +65,8 @@ resource "docker_container" "postgres" {
     name = docker_network.platform_network.name
   }
 
+  # Deliberately no `ports` block — Postgres is reachable only from other
+  # containers on platform-network, never from the host or outside it.
   restart = "unless-stopped"
 }
 
@@ -76,11 +78,8 @@ resource "docker_container" "node_exporter" {
     name = docker_network.platform_network.name
   }
 
-  ports {
-    internal = 9100
-    external = 9100
-  }
-
+  # No external port — Node Exporter is scraped by Prometheus over the
+  # internal network, not meant to be reachable from the host directly.
   restart = "unless-stopped"
 }
 
@@ -97,11 +96,9 @@ resource "docker_container" "prometheus" {
     name = docker_network.platform_network.name
   }
 
-  ports {
-    internal = 9090
-    external = 9090
-  }
-
+  # No external port — Prometheus is reached through Nginx (/prometheus/),
+  # not directly. This is the fix: previously `external = 9090` here made
+  # the "single entry point" claim in the README false.
   restart = "unless-stopped"
 }
 
@@ -118,11 +115,14 @@ resource "docker_container" "grafana" {
     name = docker_network.platform_network.name
   }
 
-  ports {
-    internal = 3000
-    external = 3000
-  }
+  env = [
+    # Grafana is served under the /grafana/ subpath via Nginx — it needs to
+    # know that, or its own internal links break.
+    "GF_SERVER_ROOT_URL=http://localhost/grafana/",
+    "GF_SERVER_SERVE_FROM_SUB_PATH=true"
+  ]
 
+  # No external port — reached through Nginx (/grafana/), not directly.
   restart = "unless-stopped"
 }
 
