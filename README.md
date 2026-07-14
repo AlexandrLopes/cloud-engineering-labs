@@ -1,5 +1,6 @@
 # Cloud Engineering Labs
 [![Automated Security Scan](https://github.com/AlexandrLopes/cloud-engineering-labs/actions/workflows/security-scan.yaml/badge.svg)](https://github.com/AlexandrLopes/cloud-engineering-labs/actions/workflows/security-scan.yaml)
+[![Terraform Quality Check](https://github.com/AlexandrLopes/cloud-engineering-labs/actions/workflows/terraform-quality.yml/badge.svg)](https://github.com/AlexandrLopes/cloud-engineering-labs/actions/workflows/terraform-quality.yml)
 
 Hands-on Cloud/DevOps portfolio — AWS infrastructure, Terraform, CloudFormation, Docker, and Python automation, solving real infrastructure and cost problems end to end.
 
@@ -74,6 +75,7 @@ Scripts that answer a specific operational question against a live AWS account.
 | [**S3 Cleanup Tool**](./python-automation/s3-cleanup-tool) | Cost-optimization script for aging S3 objects — dry-run by default. | `boto3` |
 | [**Auto-Remediation Bot**](./security-labs/ec2-auto-remediation) | Event-driven (CloudTrail → EventBridge → Lambda) — the one automation here that acts, not just reports, reverting risky Security Group rules sub-second from creation. | `Terraform`, `Lambda`, `EventBridge` |
 | [**IAM MFA Checker**](./infrastructure/cloudformation/cfn-iam-security-checker) | Daily scheduled check for IAM users without MFA, with email alerting. | `CloudFormation`, `Lambda`, `EventBridge`, `SNS` |
+| [**Security Alert Log**](./python-automation/dynamodb-security-log) | Shared DynamoDB store every audit and remediation tool above writes findings into — one queryable record across the whole portfolio. | `boto3`, `DynamoDB` |
 
 ---
 
