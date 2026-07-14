@@ -1,24 +1,39 @@
-# Stage 1 - Builder
-FROM ubuntu:22.04 AS builder
+# STAGE 1: Builder
+FROM python:3.11-slim AS builder
 
-RUN apt-get update && apt-get install -y --no-install-recommends python3 python3-pip && rm -rf /var/lib/apt/lists/*
-WORKDIR /app
+WORKDIR /build
+
+RUN apt-get update && apt-get install -y --no-install-recommends gcc build-essential \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN python -m venv /opt/venv
+ENV PATH="/opt/venv/bin:$PATH"
+
 COPY requirements.txt .
-RUN pip3 install -r requirements.txt --target=/app/libs
-
-# Stage 2 - Production
-FROM ubuntu:22.04
-
-RUN apt-get update && apt-get install -y --no-install-recommends python3 && rm -rf /var/lib/apt/lists/* \
-    && useradd --no-create-home --shell /bin/false appuser
-
-WORKDIR /app
-COPY --from=builder /app/libs /app/libs
 COPY app.py .
 
-ENV PYTHONPATH=/app/libs
+RUN pip install --no-cache-dir -r requirements.txt
+
+
+# STAGE 2: Production
+FROM python:3.11-slim
+
+RUN useradd -m -s /bin/bash appuser
+
+WORKDIR /app
+
+COPY --from=builder /opt/venv /opt/venv
+COPY --from=builder /build/app.py /app/app.py
+
+RUN chown -R appuser:appuser /app
 
 USER appuser
 
+ENV PATH="/opt/venv/bin:$PATH"
+
 EXPOSE 8080
-CMD ["python3", "app.py"]
+
+# gunicorn was already in requirements.txt and installed into the venv, but
+# the command still ran `python app.py` — Flask's dev server, not gunicorn.
+# This is what "Production" stage should have been running all along.
+CMD ["gunicorn", "--bind", "0.0.0.0:8080", "app:app"]
