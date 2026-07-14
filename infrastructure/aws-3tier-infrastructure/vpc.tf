@@ -43,16 +43,9 @@ resource "aws_subnet" "private_app" {
   }
 }
 
-resource "aws_subnet" "private_db" {
-  vpc_id            = aws_vpc.main.id
-  cidr_block        = var.private_db_subnet_cidr
-  availability_zone = "${var.aws_region}a"
-
-  tags = {
-    Name    = "${var.project_name}-subnet-private-db"
-    Project = var.project_name
-  }
-}
+# private_db subnet removed — it was provisioned but never used by any
+# instance. PostgreSQL runs on the backend EC2 (see README, Section 3), so a
+# separate database subnet had nothing to attach to.
 
 resource "aws_eip" "nat" {
   domain = "vpc"
@@ -110,10 +103,5 @@ resource "aws_route_table_association" "public" {
 
 resource "aws_route_table_association" "private_app" {
   subnet_id      = aws_subnet.private_app.id
-  route_table_id = aws_route_table.private.id
-}
-
-resource "aws_route_table_association" "private_db" {
-  subnet_id      = aws_subnet.private_db.id
   route_table_id = aws_route_table.private.id
 }
