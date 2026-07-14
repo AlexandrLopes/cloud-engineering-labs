@@ -30,12 +30,6 @@ variable "private_app_subnet_cidr" {
   default     = "10.0.2.0/24"
 }
 
-variable "private_db_subnet_cidr" {
-  description = "CIDR da subnet privada do banco"
-  type        = string
-  default     = "10.0.3.0/24"
-}
-
 variable "allowed_ssh_cidr" {
   description = "Your IP address for SSH access to Bastion"
   type        = string
@@ -45,4 +39,9 @@ variable "instance_type" {
   description = "EC2 instance type"
   type        = string
   default     = "t2.micro"
+}
+
+variable "ssh_public_key_path" {
+  description = "Path to your local SSH public key. No default on purpose — this was previously hardcoded to a specific machine's home directory (/Users/alexandrewilliam/...), which broke portability and leaked a local username into a public repo."
+  type        = string
 }
