@@ -32,7 +32,11 @@ Resources:
     Type: AWS::SQS::Queue
     Properties:
       QueueName: esim-orders-queue
-      VisibilityTimeout: 30
+      # AWS recommends the source queue's visibility timeout be at least 6x the
+      # function timeout (10s here). At 30s a slow invocation could make the
+      # message visible again while it was still being processed, producing a
+      # duplicate delivery on top of SQS's at-least-once guarantee.
+      VisibilityTimeout: 60
       KmsMasterKeyId: !GetAtt EsimKmsKey.Arn
       KmsDataKeyReusePeriodSeconds: 300
       RedrivePolicy:
@@ -135,9 +139,20 @@ Resources:
           import json
           import uuid
 
+          from botocore.exceptions import ClientError
+
           dynamodb = boto3.resource('dynamodb')
           table_name = os.environ['DYNAMO_TABLE']
           table = dynamodb.Table(table_name)
+
+
+          def generate_iccid(order_id):
+              # Derived from order_id instead of random, so the same order always
+              # produces the same ICCID. Without this, a redelivery would mint a
+              # new ICCID for an order that already had one.
+              digits = str(uuid.uuid5(uuid.NAMESPACE_OID, order_id).int)[:6]
+              return f"8901410321111{digits}"
+
 
           def lambda_handler(event, context):
               # Track which messages actually failed so SQS only retries those —
@@ -148,22 +163,48 @@ Resources:
                   message_id = record['messageId']
                   try:
                       payload = json.loads(record['body'])
-                      order_id = payload.get('order_id', str(uuid.uuid4()))
-                      customer_id = payload.get('customer_id', 'UNKNOWN')
+                      order_id = payload.get('order_id')
 
+                      # No order_id is a malformed order, not a transient fault:
+                      # retrying will never fix it, and defaulting to a random id
+                      # would mint a phantom record on every redelivery. Report it
+                      # so the redrive policy sends it to the DLQ for a human.
+                      if not order_id:
+                          print(f"Rejected order without order_id (messageId={message_id})")
+                          batch_item_failures.append({"itemIdentifier": message_id})
+                          continue
+
+                      customer_id = payload.get('customer_id', 'UNKNOWN')
                       print(f"Processing eSIM order for customer: {customer_id}")
 
-                      simulated_iccid = f"8901410321111{str(uuid.uuid4().int)[:6]}"
+                      simulated_iccid = generate_iccid(order_id)
 
+                      # SQS delivers at least once, so this handler must be
+                      # idempotent. The condition makes the write itself the lock:
+                      # the first delivery inserts, any redelivery is refused by
+                      # DynamoDB atomically. An in-memory check would not survive
+                      # two concurrent invocations.
                       table.put_item(
                           Item={
                               'order_id': order_id,
                               'customer_id': customer_id,
                               'iccid': simulated_iccid,
                               'status': 'ACTIVATED'
-                          }
+                          },
+                          ConditionExpression='attribute_not_exists(order_id)'
                       )
                       print(f"Successfully generated and stored eSIM ICCID: {simulated_iccid}")
+
+                  except ClientError as e:
+                      if e.response['Error']['Code'] == 'ConditionalCheckFailedException':
+                          # Already processed on an earlier delivery. This is the
+                          # idempotency guard doing its job — a success, not a
+                          # failure, so it must NOT go back to the queue.
+                          print(f"Order already processed, skipping (messageId={message_id})")
+                          continue
+
+                      print(f"AWS error processing order (messageId={message_id}): {str(e)}")
+                      batch_item_failures.append({"itemIdentifier": message_id})
 
                   except Exception as e:
                       print(f"Error processing order (messageId={message_id}): {str(e)}")
@@ -171,6 +212,8 @@ Resources:
 
               # Only the failed message IDs go back to SQS for retry / eventual DLQ redrive.
               # Successfully processed messages in the same batch are still deleted normally.
+              # Note: this must RETURN. An unhandled exception would bypass the partial
+              # response entirely and send the whole batch back to the queue.
               return {"batchItemFailures": batch_item_failures}
 
   # 8. Event Source Mapping (Connects the SQS Queue to the Lambda Function,

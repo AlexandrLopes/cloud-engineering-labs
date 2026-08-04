@@ -8,7 +8,7 @@ eSIM activation orders arrive in unpredictable bursts (e.g. a promotional campai
 
 This project decouples the two: an SQS queue absorbs the burst, Lambda drains it at a sustainable rate, and DynamoDB stores the result. The queue is the shock absorber.
 
-**Scope note:** the eSIM profile generation step (ICCID assignment) is **simulated** in this project — it produces a well-formed record with the right shape and constraints (uniqueness, format), but does not implement the real cryptographic provisioning protocol (SM-DP+ / GSMA RSP) that a production eSIM platform would use. The architecture around it — queueing, batching, idempotency, storage — is real and is what this project is demonstrating.
+**Scope note:** the eSIM profile generation step (ICCID assignment) is **simulated** in this project — it produces a well-formed record with the right shape and constraints (uniqueness, format), but does not implement the real cryptographic provisioning protocol (SM-DP+ / GSMA RSP) that a production eSIM platform would use. The architecture around it — queueing, batching, idempotency, storage — is real and is what this project is demonstrating. The idempotency claim in that sentence did not hold in the first version; what closed it is written up in Section 7 rather than quietly patched.
 
 ---
 
@@ -72,13 +72,54 @@ The event source mapping enables `ReportBatchItemFailures`, and the handler retu
 
 ---
 
-## 7. Infrastructure as Code: CloudFormation, Not Terraform
+## 7. Idempotency: Enforced by the Database, Not by the Handler
+
+SQS delivers **at least once**. A redelivery is not an edge case, it is the contract:
+the visibility timeout can expire while a slow invocation is still running, and the
+producer itself may retry on timeout. Any consumer that writes must therefore be
+idempotent, or duplicates are a matter of time.
+
+**The gap this closes:** the handler used to call `put_item` with no condition, and
+generated the ICCID from a fresh `uuid4` on every execution. A redelivered order
+therefore overwrote its own record **with a different ICCID** — the same `order_id`
+silently changing identity, with nothing failing and nothing logged. Worse, the
+`order_id` itself fell back to a random UUID when the payload did not carry one, so a
+malformed order minted a new phantom record on every delivery instead of being
+rejected.
+
+**Fixed with three changes:**
+
+1. **The write is conditional.** `put_item` now carries
+   `ConditionExpression='attribute_not_exists(order_id)'`, so the first delivery
+   inserts and any redelivery is refused by DynamoDB atomically. The idempotency is
+   enforced by the storage layer, not by the function — an in-memory check would not
+   survive two concurrent invocations of the same message.
+2. **`ConditionalCheckFailedException` is treated as success**, not failure. An order
+   that was already processed must **not** be reported in `batchItemFailures`, or the
+   idempotency guard would itself push a perfectly healthy message towards the DLQ.
+3. **The ICCID is derived from the `order_id`** (`uuid5`) rather than random, so the
+   same order always yields the same value even if two deliveries race. And a payload
+   with no `order_id` is now rejected into `batchItemFailures` — it is a malformed
+   order, not a transient fault, and retrying will never fix it, so the redrive policy
+   routes it to the DLQ for a human.
+
+**Related fix — visibility timeout.** The source queue was set to `VisibilityTimeout:
+30` against a `Timeout: 10` function. AWS recommends the queue's visibility timeout be
+at least **six times** the function timeout, so it is now `60`. At 30 seconds, a slow
+invocation could make the message visible again while it was still being processed —
+manufacturing exactly the duplicate delivery that item 1 above now absorbs.
+
+No IAM change was required: a conditional write is still the `dynamodb:PutItem` action.
+
+---
+
+## 8. Infrastructure as Code: CloudFormation, Not Terraform
 
 Unlike the other Terraform-based projects in this portfolio, this one is provisioned with **AWS CloudFormation** — a deliberate choice to demonstrate comfort with AWS's native IaC tool, not just the third-party standard. IAM least-privilege roles are provisioned as part of the same template, scoped to exactly what the Lambda needs (SQS read/delete, DynamoDB write).
 
 ---
 
-## 8. Risks and Trade-offs (Summary)
+## 9. Risks and Trade-offs (Summary)
 
 **DynamoDB vs RDS:** fits the single-key access pattern (`order_id` hash key, `PAY_PER_REQUEST`) and scales under bursty writes without capacity planning ahead of time; loses relational query flexibility.
 
@@ -87,6 +128,8 @@ Unlike the other Terraform-based projects in this portfolio, this one is provisi
 **Batch processing + partial failure reporting:** amortizes Lambda invocation overhead at scale (`BatchSize: 10`) while isolating retries to only the messages that actually failed, not the whole batch.
 
 **DLQ + alerting:** a message that fails 3 attempts moves to a dead-letter queue instead of disappearing, and a CloudWatch alarm surfaces it via SNS. Redriving from the DLQ back to the main queue after a fix is still a manual step — no automated reprocessing pipeline yet.
+
+**Idempotency (fixed):** covered in Section 7 — the write was unconditional and the ICCID was regenerated on every execution, so a redelivery silently changed an order's identity. Now a conditional write makes DynamoDB the arbiter, a duplicate is counted as success rather than failure, and the visibility timeout was raised to six times the function timeout.
 
 **Simulated eSIM generation:** the architecture (queueing, decoupling, storage) is real and load-bearing; the cryptographic provisioning step is not implemented and is explicitly out of scope, not hidden.
 
