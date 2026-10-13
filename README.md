@@ -2,7 +2,7 @@
 [![Automated Security Scan](https://github.com/AlexandrLopes/cloud-engineering-labs/actions/workflows/security-scan.yaml/badge.svg)](https://github.com/AlexandrLopes/cloud-engineering-labs/actions/workflows/security-scan.yaml)
 [![Terraform Quality Check](https://github.com/AlexandrLopes/cloud-engineering-labs/actions/workflows/terraform-quality.yml/badge.svg)](https://github.com/AlexandrLopes/cloud-engineering-labs/actions/workflows/terraform-quality.yml)
 
-Hands-on Cloud/DevOps portfolio — AWS infrastructure, Terraform, CloudFormation, Docker, and Python automation, solving real infrastructure and cost problems end to end.
+Production-minded Cloud, DevOps, and security engineering — AWS infrastructure, Terraform, CloudFormation, Docker, Kubernetes, and Python automation, solving real infrastructure, security, and cost problems end to end.
 
 Every project here follows the same standard: a decision documented alongside the alternative it wasn't, and the trade-off stated directly rather than implied. Every CI/CD, IaC, and automation project also runs through automated scanning (Trivy) as part of the build.
 
@@ -15,6 +15,16 @@ Production-oriented AWS architecture for real-time telephony signaling ingress �
 | Project | What it solves | Tech Stack |
 | :--- | :--- | :--- |
 | [**SIP Ingress Infrastructure**](https://github.com/AlexandrLopes/sip-ingress-aws) | Layer 4 NLB (UDP) with source-IP preservation and provider allowlisting, stateless ECS Fargate scaling on active SIP sessions (not CPU), RDS Multi-AZ behind RDS Proxy, private subnets reaching AWS services via VPC Endpoints (no NAT). | `Terraform`, `NLB`, `ECS/Fargate`, `RDS Proxy`, `VPC Endpoints` |
+
+---
+
+## Kubernetes Security
+
+Security enforced by default at the cluster — admission, network, secrets, and supply chain — with every control self-verifying.
+
+| Project | What it solves | Tech Stack |
+| :--- | :--- | :--- |
+| [**Kubernetes Hardening Lab**](https://github.com/AlexandrLopes/kubernetes-hardening-lab) | `restricted` Pod Security in enforce mode, Kyverno admission policies, default-deny Calico NetworkPolicies, SealedSecrets kept encrypted in Git, and digest-pinned images behind a Trivy CRITICAL gate — every control proven by a verification script that fails the moment the control is removed. | `Kubernetes`, `Kyverno`, `Calico`, `Sealed Secrets`, `Trivy`, `GitHub Actions` |
 
 ---
 
@@ -80,9 +90,9 @@ Scripts that answer a specific operational question against a live AWS account.
 ---
 
 ### About Me
-Cloud & DevOps Engineer focused on infrastructure automation, Infrastructure as Code, and CI/CD.
+SecDevOps & Cloud Engineer focused on secure infrastructure automation, Infrastructure as Code, and CI/CD security.
 * **Certifications:** AWS Certified Cloud Practitioner (CLF-C02), Google Cloud Cybersecurity.
-* **Focus:** AWS, Terraform, Docker, Python, CI/CD, Observability.
+* **Focus:** AWS, Kubernetes, Terraform, Docker, Python, CI/CD security, Observability.
 * **Languages:** English (C2), Portuguese (Native), Spanish (B2).
 
 ---
