@@ -20,11 +20,11 @@ Production-oriented AWS architecture for real-time telephony signaling ingress �
 
 ## Kubernetes Security
 
-Security enforced by default at the cluster — admission, network, secrets, and supply chain — with every control self-verifying.
+Security enforced by default at the cluster — admission, network, secrets, supply chain, GitOps, and runtime — with every control self-verifying.
 
 | Project | What it solves | Tech Stack |
 | :--- | :--- | :--- |
-| [**Kubernetes Hardening Lab**](https://github.com/AlexandrLopes/kubernetes-hardening-lab) | `restricted` Pod Security in enforce mode, Kyverno admission policies, default-deny Calico NetworkPolicies, SealedSecrets kept encrypted in Git, and digest-pinned images behind a Trivy CRITICAL gate — every control proven by a verification script that fails the moment the control is removed. | `Kubernetes`, `Kyverno`, `Calico`, `Sealed Secrets`, `Trivy`, `GitHub Actions` |
+| [**Kubernetes Hardening Lab**](https://github.com/AlexandrLopes/kubernetes-hardening-lab) | `restricted` Pod Security in enforce mode, Kyverno admission policies, default-deny Calico NetworkPolicies, SealedSecrets kept encrypted in Git, and every image served from an internal registry and refused unless a cosign signature checks out — with the accepted tag rewritten to the verified digest. Argo CD owns the cluster state and restores deleted controls from Git in about a second; Falco watches what the running containers do. Thirty-four checks prove it, each one failing the moment the control it covers is removed. | `Kubernetes`, `Kyverno`, `Calico`, `Sealed Secrets`, `cosign`, `Argo CD`, `Falco`, `Trivy`, `GitHub Actions` |
 
 ---
 
